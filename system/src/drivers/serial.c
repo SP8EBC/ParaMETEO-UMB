@@ -34,9 +34,9 @@ void SrlConfig(void) {
 	Configure_GPIO(GPIOA,8,AFPP_OUTPUT_2MHZ);	// CLK
 	Configure_GPIO(GPIOA,10,PUD_INPUT);			// RX
 	Configure_GPIO(GPIOA,9,AFPP_OUTPUT_2MHZ);	// TX
-	Configure_GPIO(GPIOC,6,GPPP_OUTPUT_50MHZ);	//
+	Configure_GPIO(GPIOA,13,GPPP_OUTPUT_50MHZ);	//
 
-	GPIO_ResetBits(GPIOC, GPIO_Pin_6);
+	GPIO_ResetBits(GPIOA, GPIO_Pin_13);
 	
 //	Configure_GPIO(GPIOB,6,AFPP_OUTPUT_2MHZ);	// TX-remap
 //	Configure_GPIO(GPIOB,7,PUD_INPUT);			// RX-remap
@@ -95,7 +95,7 @@ void SrlSendData(char* data, char mode, short leng) {
 		PORT->CR1 |= USART_CR1_TXEIE;				// przerwanie zg�aszane kiedy rejsetr DR jest pusty
 		PORT->CR1 |= USART_CR1_TCIE;				// przerwanie zg�aszane po transmisji bajtu
 												// je�eli rejestr DR jest nadal pusty
-		GPIO_SetBits(GPIOC, GPIO_Pin_6);
+		GPIO_SetBits(GPIOA, GPIO_Pin_13);
 
 	}	
 
@@ -156,7 +156,7 @@ void USART1_IRQHandler(void) {
 			PORT->SR &= (0xFFFFFFFF ^ USART_SR_TC);
 			memset(srlTXData, 0x00, 128);
 			srlTXQueueLen = 0;
-			GPIO_ResetBits(GPIOC, GPIO_Pin_6);
+			GPIO_ResetBits(GPIOA, GPIO_Pin_13);
 
 
 //			trace_printf("Serial: sent\r\n");
