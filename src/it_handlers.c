@@ -27,28 +27,29 @@ void TIM3_IRQHandler(void) {
 	TIM3->SR &= ~(1<<0);
 	ds_t = DallasQuery();
 	u.temperature = (char)ds_t;
-//	 GPIO_ResetBits(GPIOC, GPIO_Pin_9)	trace_printf("temperatura DS: %d\r\n", (int)ds_t);
+	 GPIO_SetBits(GPIOC, GPIO_Pin_8);
 
 //	trace_puts("TIM3\r\n");
-//	switch (s) {
-//	case 0:
-//		ds_t = DallasQuery();
+	switch (s) {
+	case 0:
+		ds_t = DallasQuery();
 //		trace_printf("temperatura DS: %d\r\n", (int)ds_t);
-//		s = 1;
-//		break;
-//	case 1:
-//		  ms_t = SensorBringTemperature();
+		s = 1;
+		break;
+	case 1:
+		  ms_t = SensorBringTemperature();
 //		  trace_printf("temperatura MS: %d\r\n", (int)ms_t);
-//		  s = 2;
-//		  break;
-//	case 2:
-//		  ms_p = (float)SensorBringPressure();
+		  s = 2;
+		  break;
+	case 2:
+		  ms_p = (float)SensorBringPressure();
 //		  trace_printf("cisnienie MS: %d\r\n", (int)ms_p);
-//		  s = 0;
-//		break;
-//	default: s = 0; break;
-//
-//	}
+		  s = 0;
+		break;
+	default: s = 0; break;
+
+	}
+	 GPIO_ResetBits(GPIOC, GPIO_Pin_8);
 	// co 10 sekund
 }
 

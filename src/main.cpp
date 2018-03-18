@@ -130,9 +130,15 @@ main(int argc, char* argv[])
   u.windgusts = 0.0f;
   u.windspeed = 0.0f;
 
+  IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
+  IWDG_SetPrescaler(IWDG_Prescaler_128);
+  IWDG_SetReload(0xFFF);
+  IWDG_Enable();
+  IWDG_ReloadCounter();
+
+
   LedConfig();
   TimerConfig();
-  EventTimerConfig();
 //  SendingTimerConfig();
   DallasInit(GPIOC, GPIO_Pin_7, GPIO_PinSource7);
   SrlConfig();
@@ -156,23 +162,18 @@ main(int argc, char* argv[])
 //  AFSK_Init(&a);
 
   ds_t = DallasQuery();
-  trace_printf("temperatura DS: %d\r\n", (int)ds_t);
+//  trace_printf("temperatura DS: %d\r\n", (int)ds_t);
   ms_t = SensorBringTemperature();
-  trace_printf("temperatura MS: %d\r\n", (int)ms_t);
+//  trace_printf("temperatura MS: %d\r\n", (int)ms_t);
   ds_t = DallasQuery();
   ms_p = (float)SensorBringPressure();
-  trace_printf("cisnienie MS: %d\r\n", (int)ms_p);
+//  trace_printf("cisnienie MS: %d\r\n", (int)ms_p);
 
 	u.temperature = (char)ds_t;
 
-  GPIO_ResetBits(GPIOC, GPIO_Pin_8 | GPIO_Pin_9);
-
+	  GPIO_ResetBits(GPIOC, GPIO_Pin_8 | GPIO_Pin_9);
+	EventTimerConfig();
   UmbSlaveListen();
-
-  IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
-  IWDG_SetPrescaler(IWDG_Prescaler_128);
-  IWDG_SetReload(0xFFF);
- // IWDG_Enable();
 
   // Infinite loop
   while (1)
