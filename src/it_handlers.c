@@ -12,6 +12,7 @@
 #include "drivers/ms5611.h"
 #include "drivers/serial.h"
 #include "drivers/tx20.h"
+#include "drivers/_dht22.h"
 #include "drivers/umb-slave.h"
 #include "KissCommunication.h"
 #include <stdio.h>
@@ -44,7 +45,12 @@ void TIM3_IRQHandler(void) {
 	case 2:
 		  ms_p = (float)SensorBringPressure();
 //		  trace_printf("cisnienie MS: %d\r\n", (int)ms_p);
-		  s = 0;
+		  s = 3;
+		break;
+	case 3:
+		if (dht22State == DHT22_STATE_DONE || dht22State == DHT22_STATE_TIMEOUT)
+			dht22State = DHT22_STATE_IDLE;
+		s = 0;
 		break;
 	default: s = 0; break;
 

@@ -19,6 +19,7 @@
 #include "drivers/tx20.h"
 #include "drivers/i2c.h"
 #include "drivers/adc.h"
+#include "drivers/_dht22.h"
 #include "TimerConfig.h"
 #include "LedConfig.h"
 
@@ -70,6 +71,8 @@ namespace
 float ds_t = 0.0;
 float ms_t = 0.0f;
 double ms_p = 0.0;
+
+dht22Values dht, dht_valid;
 
 AX25Ctx ax25;
 Afsk a;
@@ -144,6 +147,7 @@ main(int argc, char* argv[])
   SrlConfig();
   TX20Init();
   i2cConfigure();
+  dht22_init();
 
   SensorReset(0xEC);
   ds_t = DallasQuery();
@@ -198,6 +202,25 @@ main(int argc, char* argv[])
 	  if (srlRXing == 0) {
 		  IWDG_ReloadCounter();
 	  }
+
+		dht22_timeout_keeper();
+
+		switch (dht22State) {
+			case DHT22_STATE_IDLE:
+				dht22_comm(&dht);
+				break;
+			case DHT22_STATE_DATA_RDY:
+				dht22_decode(&dht);
+				break;
+			case DHT22_STATE_DATA_DECD:
+				dht_valid = dht;			// powrot do stanu DHT22_STATE_IDLE jest w TIM3_IRQHandler
+				dht22State = DHT22_STATE_DONE;
+#ifdef _DBG_TRACE
+				trace_printf("DHT22: temperature=%d,humi=%d\r\n", dht_valid.scaledTemperature, dht_valid.humidity);
+#endif
+				break;
+			default: break;
+		}
 
 	  UmbSlavePool();
 	  if (umbSlaveState == 2) {
