@@ -462,7 +462,7 @@ char UmbOnlineDataRequestResponse(UmbMeteoData *pMeteo, char status) {
 			umbMessage.payloadLn = 8;
 			break;
 		case 300:
-		case 305:
+		case 350:
 		case 560:
 		case 580:
 			umbMessage.payload[3] = UNSIGNED_SHORT;

@@ -247,6 +247,13 @@ main(int argc, char* argv[])
 				  break;
 			  case 0x23:
 //				  UmbClearMessageStruct(0);
+				  u.humidity = (char)dht_valid.humidity;
+				  u.temperature = ds_t;
+				  u.qfe = ms_p;
+				  u.qnh = CalcQNHFromQFE(ms_p, 674, ds_t);
+				  u.winddirection = TX20.HistoryAVG[0].WindDirX;
+				  u.windspeed = TX20.HistoryAVG[0].WindSpeed;
+				  u.windgusts = TX20FindMaxSpeed();
 				  UmbOnlineDataRequestResponse(&u, 0);
 				  SrlStartTX(UmbPrepareFrameToSend(&umbMessage, srlTXData));
 				  umbSlaveState = 4;

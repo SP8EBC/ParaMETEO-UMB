@@ -157,6 +157,18 @@ float TX20DataAverage(void) {
 	return 0;
 }
 
+float TX20FindMaxSpeed(void) {
+	float max_wind_speed = 0.0f;
+	unsigned char d;
+	for(d = 1; d <= 15 ; d++) {
+		if (VNAME.HistoryAVG[d].WindSpeed > max_wind_speed) {
+				max_wind_speed = VNAME.HistoryAVG[d].WindSpeed;
+		}
+	}
+
+	return max_wind_speed;
+}
+
 void TX20DataParse(void) {
 	int temp;
 	unsigned long long int raw_frame;
@@ -254,6 +266,7 @@ void TIM1_UP_TIM16_IRQHandler( void ) {
 	TIM1->SR &= ~(1<<0);
 	TX20Batch();
 }
+
 #elif TIMNUMBER == 2
 void TIM2_IRQHandler( void ) {
 
