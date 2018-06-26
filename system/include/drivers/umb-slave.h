@@ -25,6 +25,7 @@ typedef struct UmbMessage {
 } UmbMessage;
 
 typedef struct UmbMeteoData {
+	float fTemperature;
 	char temperature;
 	char humidity;
 	unsigned short qfe, qnh;

@@ -428,6 +428,8 @@ char UmbOnlineDataRequestResponse(UmbMeteoData *pMeteo, char status) {
 	switch (ch) { // switch for <value>
 	case 100:
 		val = &pMeteo->temperature; break;
+	case 101:
+		val = &pMeteo->fTemperature; break;
 	case 200:
 		val = &pMeteo->humidity; break;
 	case 300:
@@ -452,6 +454,7 @@ char UmbOnlineDataRequestResponse(UmbMeteoData *pMeteo, char status) {
 			umbMessage.payload[4] = *(char*)val;
 			umbMessage.payloadLn = 5;
 			break;
+		case 101:
 		case 440:
 		case 460:
 			umbMessage.payload[3] = FLOAT;

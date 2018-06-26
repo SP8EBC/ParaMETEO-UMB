@@ -129,7 +129,8 @@ void TX20Batch(void) {
 }
 
 float TX20DataAverage(void) {
-	char i;
+	int8_t i, j;
+	int8_t skip = 0;
 	short x = 0,xx = 0,y = 0,yy = 0, out = 0;
 	x = (short)(100.0f * cosf((float)VNAME.Data.WindDirX * PI/180.0f));
 	y = (short)(100.0f * sinf((float)VNAME.Data.WindDirX * PI/180.0f));
@@ -141,13 +142,24 @@ float TX20DataAverage(void) {
 	VNAME.HistoryAVG[0].WindSpeed = 0;
 	x = 0, y = 0;
 	for (i = 1; (i <= 19 && VNAME.HistoryAVG[i].WindSpeed != -1); i++) {
+		if (i == 19)
+			j = 1;
+		else
+			j = i + 1;
+
+		if (VNAME.HistoryAVG[i].WindSpeed - VNAME.HistoryAVG[j].WindSpeed > 10.0f ||
+			VNAME.HistoryAVG[i].WindSpeed - VNAME.HistoryAVG[j].WindSpeed < -10.0f	) {
+			skip ++;
+			continue;
+		}
+
 		VNAME.HistoryAVG[0].WindSpeed += VNAME.HistoryAVG[i].WindSpeed;
 		x	+= VNAME.HistoryAVG[i].WindDirX;
 		y	+= VNAME.HistoryAVG[i].WindDirY;
 	}
-	VNAME.HistoryAVG[0].WindSpeed /= (i - 1);
-	xx = x / (i - 1);
-	yy = y / (i - 1);
+	VNAME.HistoryAVG[0].WindSpeed /= (i - 1 - skip);
+	xx = x / (i - 1 - skip);
+	yy = y / (i - 1 - skip);
 	out = (short)(atan2f(yy , xx) * 180.0f/PI);
 	if (out < 0)
 		out += 360;
