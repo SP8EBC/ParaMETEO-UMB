@@ -22,10 +22,17 @@ static char wx_freq = 3, wxi = 2;
 
 extern UmbMeteoData u;
 
+// przerwanie wyzwalne co ~40 sekund
 void TIM3_IRQHandler(void) {
 
 
 	TIM3->SR &= ~(1<<0);
+
+	commTimeoutCounter++;
+
+	if (commTimeoutCounter > 8)
+		NVIC_SystemReset();
+
 	ds_t = DallasQuery();
 	u.temperature = (char)ds_t;
 	 GPIO_SetBits(GPIOC, GPIO_Pin_8);

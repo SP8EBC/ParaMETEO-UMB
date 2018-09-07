@@ -84,6 +84,8 @@ UmbMeteoData u;
 
 volatile int i = 0;
 
+volatile uint8_t commTimeoutCounter = 0;
+
 //uint16_t adc = 0;
 
 
@@ -223,8 +225,12 @@ main(int argc, char* argv[])
 		}
 
 	  UmbSlavePool();
+	  if (umbSlaveState == 3) {
+		  NVIC_SystemReset();
+	  }
 	  if (umbSlaveState == 2) {
 		  GPIO_SetBits(GPIOC, GPIO_Pin_8);
+		  commTimeoutCounter = 0;
 //	  	  trace_printf("UmbSlave: Received cmdId 0x%02x with data %d bytes long\n", umbMessage.cmdId, umbMessage.payloadLn);
 		  for (i = 0; i <= 0x1FFFF; i++);
 		  switch (umbMessage.cmdId) {

@@ -20,6 +20,8 @@ extern AX25Call path[2];
 extern uint8_t aprs_msg_len;
 extern char aprs_msg[128];
 
+extern uint8_t commTimeoutCounter;
+
 
 
 #endif /* MAIN_H_ */
