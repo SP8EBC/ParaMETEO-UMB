@@ -8,6 +8,7 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 
+#include <stdint.h>
 
 #define _SERIAL_BAUDRATE 28800
 
@@ -20,7 +21,7 @@ extern float ds_t;
 extern float ms_t;
 extern double ms_p;
 
-extern uint8_t commTimeoutCounter;
+//extern volatile uint8_t commTimeoutCounter;
 
 
 

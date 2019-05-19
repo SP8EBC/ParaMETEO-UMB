@@ -199,6 +199,19 @@ void TX20DataParse(void) {
 //	SrlSendData(logging_buff, 0, 0);
 }
 
+float TX20FindMaxSpeed(void) {
+	float max_wind_speed = 0.0f;
+	unsigned char d;
+	for(d = 1; d <= 15 ; d++) {
+		if (VNAME.HistoryAVG[d].WindSpeed > max_wind_speed) {
+				max_wind_speed = VNAME.HistoryAVG[d].WindSpeed;
+		}
+	}
+
+	return max_wind_speed;
+}
+
+
 // Przerwania EXTI do synchronizacji
 
 #if TX == 0

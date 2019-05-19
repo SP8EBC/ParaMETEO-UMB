@@ -53,7 +53,7 @@ volatile int ii = 0;
 
 char UmbSlaveListen() {
 	if(srl_rx_state == SRL_RX_IDLE || srl_rx_state == SRL_RX_DONE || srl_rx_state == SRL_RX_ERROR) {			// EOT
-		SrlReceiveData(8, SOH, 0x00, 0, 6, 12);
+		srl_receive_data(8, SOH, 0x00, 0, 6, 12);
 		UmbClearMessageStruct(0);
 		umbSlaveState = 1;
 		umbMasterClass = 0;

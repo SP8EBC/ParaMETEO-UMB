@@ -61,6 +61,7 @@ void TX20Batch(void);
 void TX20Init(void);
 float TX20DataAverage(void);
 void TX20DataParse(void);
+float TX20FindMaxSpeed(void);
 
 #ifdef __cplusplus
 }

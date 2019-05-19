@@ -16,6 +16,8 @@
 #include "drivers/_dht22.h"
 #include "drivers/i2c.h"
 #include "drivers/umb-slave.h"
+#include "../include/rte_main.h"
+#include "../include/rte_wx.h"
 #include "KissCommunication.h"
 #include <stdio.h>
 
@@ -44,9 +46,9 @@ void TIM3_IRQHandler(void) {
 
 	TIM3->SR &= ~(1<<0);
 
-	commTimeoutCounter++;
+	rte_main_umb_comm_timeout_cntr++;
 
-	if (commTimeoutCounter > 8)
+	if (rte_main_umb_comm_timeout_cntr > 8)
 		NVIC_SystemReset();
 
 	ds_t = DallasQuery();

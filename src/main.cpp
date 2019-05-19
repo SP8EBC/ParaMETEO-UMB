@@ -26,11 +26,11 @@
 #include "TimerConfig.h"
 #include "LedConfig.h"
 
-#include "Timer.h"
-#include "BlinkLed.h"
-
 #include "aprs/ax25.h"
 #include "KissCommunication.h"
+
+#include "rte_main.h"
+#include "rte_wx.h"
 
 #define _KOZIA_GORA
 
@@ -44,7 +44,7 @@ UmbMeteoData u;
 
 volatile int i = 0;
 
-volatile uint8_t commTimeoutCounter = 0;
+//volatile uint8_t commTimeoutCounter = 0;
 
 uint32_t master_time = 0;
 
@@ -62,17 +62,6 @@ uint32_t master_time = 0;
 int
 main(int argc, char* argv[])
 {
-
-  NVIC_SetPriorityGrouping(0);
-
-  // Send a greeting to the trace device (skipped on Release).
-//  trace_puts("Hello ARM World!");
-
-  // At this stage the system clock should have already been configured
-  // at high speed.
-//  trace_printf("System clock: %u Hz\n", SystemCoreClock);
-
-  char rsoutput[20];
 
   RCC->APB1ENR |= (RCC_APB1ENR_TIM2EN | RCC_APB1ENR_TIM3EN | RCC_APB1ENR_TIM7EN | RCC_APB1ENR_TIM4EN);
   RCC->APB2ENR |= (RCC_APB2ENR_IOPAEN |
@@ -167,8 +156,7 @@ main(int argc, char* argv[])
 	  }
 	  if (umbSlaveState == 2) {
 		  GPIO_SetBits(GPIOC, GPIO_Pin_8);
-		  commTimeoutCounter = 0;
-//	  	  trace_printf("UmbSlave: Received cmdId 0x%02x with data %d bytes long\n", umbMessage.cmdId, umbMessage.payloadLn);
+		  rte_main_umb_comm_timeout_cntr = 0;
 		  for (i = 0; i <= 0x1FFFF; i++);
 		  switch (umbMessage.cmdId) {
 			  case 0x26:
@@ -182,11 +170,6 @@ main(int argc, char* argv[])
 				  UmbDeviceInformationRequestResponse();
 				  srl_start_tx(UmbPrepareFrameToSend(&umbMessage, srl_tx_buffer));
 				  umbSlaveState = 4;
-//				  trace_printf("UmbSlave: cmd[DEVICE_INFO] sending payload for option 0x%02X with status %d crc: 0x%04X\n",
-//						  	 umbMessage.payload[1],
-//							 umbMessage.payload[0],
-//							 umbMessage.checksum
-//							 );
 				  break;
 			  case 0x23:
 //				  UmbClearMessageStruct(0);
@@ -214,7 +197,7 @@ main(int argc, char* argv[])
 		  }
 		  GPIO_ResetBits(GPIOC, GPIO_Pin_8);
 	  }
-	  if (umbSlaveState == 4 && srlTXing == 0)
+	  if (umbSlaveState == 4 && srl_tx_state == SRL_TX_IDLE)
 		  UmbSlaveListen();
 
 
