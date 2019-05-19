@@ -32,7 +32,7 @@
 #include "rte_main.h"
 #include "rte_wx.h"
 
-#define _KOZIA_GORA
+//#define _KOZIA_GORA
 
 float ds_t = 0.0;
 float ms_t = 0.0f;

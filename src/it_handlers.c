@@ -40,6 +40,22 @@ void SysTick_Handler(void) {
 
 }
 
+void USART1_IRQHandler(void) {
+	NVIC_ClearPendingIRQ(USART1_IRQn);
+	srl_irq_handler();
+}
+
+void I2C1_EV_IRQHandler(void) {
+	NVIC_ClearPendingIRQ(I2C1_EV_IRQn);
+
+	i2cIrqHandler();
+
+}
+
+void I2C1_ER_IRQHandler(void) {
+	i2cErrIrqHandler();
+}
+
 // przerwanie wyzwalne co ~40 sekund
 void TIM3_IRQHandler(void) {
 
