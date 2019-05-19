@@ -36,15 +36,3 @@ void EventTimerConfig(void) {
 
 }
 
-void SendingTimerConfig(void) {
-	NVIC_SetPriority(TIM4_IRQn, 3);
-	TIM4->PSC = 65535;
-	TIM4->ARR = 21960;   // co 60 sekund
-	TIM4->CR1 |= TIM_CR1_DIR;
-	TIM4->CR1 &= (0xFFFFFFFF ^ TIM_CR1_DIR);
-	TIM4->CR1 |= TIM_CR1_CEN;
-	TIM4->DIER |= 1;
-	NVIC_EnableIRQ( TIM4_IRQn );
-
-}
-

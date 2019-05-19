@@ -47,7 +47,7 @@ char UmbOnlineDataRequestResponse(UmbMeteoData *pMeteo, char status);
 char UmbMultiOnlineDataRequestResponse(UmbMeteoData *pMeteo, char status);
 
 void UmbClearMessageStruct(char b);
-short UmbPrepareFrameToSend(UmbMessage* pMessage, char* pUsartBuffer);
+short UmbPrepareFrameToSend(UmbMessage* pMessage, uint8_t* pUsartBuffer);
 
 unsigned short calc_crc(unsigned short crc_buff, unsigned char input);
 

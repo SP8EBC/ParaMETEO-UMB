@@ -3,9 +3,13 @@
 //#define STM32F10X_MD_VL
 #include <stm32f10x.h>
 #include <math.h>
-//#include <stm32f10x_md_vl.h>
 #include "diag/Trace.h"
 
+#include "rte_wx.h"
+
+//#include "station_config.h"
+
+//#include <stm32f10x_md_vl.h>
 
 ///* only for debug */
 //#define __SERIAL
@@ -27,6 +31,7 @@ Anemometer VNAME;	// Deklaracja zmiennej strukturalnej typu Anemometer
 
 #define PI 3.14159265
 
+#ifdef _METEO
 void inline TX20BlinkLed(void) {
 	if ((GPIOC->ODR & GPIO_ODR_ODR9)  == GPIO_ODR_ODR9) {
 		GPIOC->BSRR |= GPIO_BSRR_BR9;
@@ -36,6 +41,7 @@ void inline TX20BlinkLed(void) {
 	}
 
 }
+#endif
 
 void TX20Init(void) {
 	char i;
@@ -49,8 +55,10 @@ void TX20Init(void) {
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
+#ifdef _METEO
 
 	GPIO_ResetBits(GPIOB, GPIO_Pin_8);
+#endif
 
 	TIMER->PSC = 191;
 	TIMER->ARR = 75;
@@ -68,7 +76,7 @@ void TX20Init(void) {
 	//// inicjalizacja p�l struktury      //
 	////////////////////////////////////////
 	BQ = 0, QL = 0, FC = 0, DCD = 0, RD = 0, MC = 1, OE = 0;
-	for (i = 1; i <= 19; i++) {
+	for (i = 1; i <= TX20_BUFF_LN - 1; i++) {
 		VNAME.HistoryAVG[i].WindSpeed = -1;
 		VNAME.HistoryAVG[i].WindDirX	= -1;
 		VNAME.HistoryAVG[i].WindDirY	= -1;
@@ -97,17 +105,11 @@ void TX20Batch(void) {
 			BQ &= 0x1F;
 		}
 		else;
-		#ifdef DEBUG
-		if ((GPIOC->ODR & GPIO_ODR_ODR6)  == GPIO_ODR_ODR6) {
-			GPIOC->BSRR |= GPIO_BSRR_BR6;
-		}
-		else if ((GPIOC->ODR & GPIO_ODR_ODR6)  == 0) {
-			GPIOC->BSRR |= GPIO_BSRR_BS6;
-		}
-		#endif
 		if (DCD == 1)
 			if (FC == 0x29) {
+#ifdef _METEO
 				TX20BlinkLed();
+#endif
 				if (OE >= 3) {
 					TX20DataParse();
 					OE = 0;
@@ -115,11 +117,8 @@ void TX20Batch(void) {
 				else
 					OE++;
 				DCD = 0, BQ = 0, RD = 1, FC = 0, QL = 0, BS = 0;
-				TIMER->CR1 &= (0xFFFFFFFF ^ TIM_CR1_CEN);
-				TIMER->CNT = 0;
-//				#ifdef DEBUG
-//				GPIOC->BSRR |= GPIO_BSRR_BR9;
-//				#endif
+				TIMER->CR1 &= (0xFFFFFFFF ^ TIM_CR1_CEN);	// disabling baudrate timer after receiving whole frame
+				TIMER->CNT = 0;		// resetting timer counter back to zero
 			}
 			else
 				FC++;
@@ -129,11 +128,16 @@ void TX20Batch(void) {
 }
 
 float TX20DataAverage(void) {
-	int8_t i, j;
-	int8_t skip = 0;
+	char i;
 	short x = 0,xx = 0,y = 0,yy = 0, out = 0;
 	x = (short)(100.0f * cosf((float)VNAME.Data.WindDirX * PI/180.0f));
 	y = (short)(100.0f * sinf((float)VNAME.Data.WindDirX * PI/180.0f));
+
+	if (abs((int32_t)(VNAME.HistoryAVG[MC].WindSpeed - VNAME.Data.WindSpeed)) > 5) {
+		rte_wx_tx20_excessive_slew_rate = 1;
+		return 0;
+	}
+
 	VNAME.HistoryAVG[MC].WindSpeed = VNAME.Data.WindSpeed;
 	VNAME.HistoryAVG[MC].WindDirX = x;
 	VNAME.HistoryAVG[MC].WindDirY = y;
@@ -141,44 +145,21 @@ float TX20DataAverage(void) {
 	VNAME.HistoryAVG[0].WindDirY = 0;
 	VNAME.HistoryAVG[0].WindSpeed = 0;
 	x = 0, y = 0;
-	for (i = 1; (i <= 19 && VNAME.HistoryAVG[i].WindSpeed != -1); i++) {
-		if (i == 19)
-			j = 1;
-		else
-			j = i + 1;
-
-		if (VNAME.HistoryAVG[i].WindSpeed - VNAME.HistoryAVG[j].WindSpeed > 10.0f ||
-			VNAME.HistoryAVG[i].WindSpeed - VNAME.HistoryAVG[j].WindSpeed < -10.0f	) {
-			skip ++;
-			continue;
-		}
-
+	for (i = 1; (i <= TX20_BUFF_LN - 1 && VNAME.HistoryAVG[i].WindSpeed != -1); i++) {
 		VNAME.HistoryAVG[0].WindSpeed += VNAME.HistoryAVG[i].WindSpeed;
 		x	+= VNAME.HistoryAVG[i].WindDirX;
 		y	+= VNAME.HistoryAVG[i].WindDirY;
 	}
-	VNAME.HistoryAVG[0].WindSpeed /= (i - 1 - skip);
-	xx = x / (i - 1 - skip);
-	yy = y / (i - 1 - skip);
+	VNAME.HistoryAVG[0].WindSpeed /= (i - 1);
+	xx = x / (i - 1);
+	yy = y / (i - 1);
 	out = (short)(atan2f(yy , xx) * 180.0f/PI);
 	if (out < 0)
 		out += 360;
 	VNAME.HistoryAVG[0].WindDirX  = out;
-	if ((MC++) == 20)
+	if ((MC++) == TX20_BUFF_LN)
 		MC = 1;
 	return 0;
-}
-
-float TX20FindMaxSpeed(void) {
-	float max_wind_speed = 0.0f;
-	unsigned char d;
-	for(d = 1; d <= 15 ; d++) {
-		if (VNAME.HistoryAVG[d].WindSpeed > max_wind_speed) {
-				max_wind_speed = VNAME.HistoryAVG[d].WindSpeed;
-		}
-	}
-
-	return max_wind_speed;
 }
 
 void TX20DataParse(void) {
@@ -207,15 +188,15 @@ void TX20DataParse(void) {
 	temp &= 0xF;
 	temp = ((temp & 0x8) >> 3) | ((temp & 0x4) >> 1) | ((temp & 0x2) << 1) | ((temp & 0x1) << 3);
 	VNAME.Data.Checksum = temp;
-	if (VNAME.Data.Checksum == VNAME.Data.CalcChecksum && VNAME.Data.WindSpeed <= 25.0f)
+	if (VNAME.Data.Checksum == VNAME.Data.CalcChecksum)
 		TX20DataAverage();
 	else;
-	/* only for debug */
-//	sprintf(logging_buff, "S: %f D: %d RC: %d CC: %d \n\r\0", VNAME.Data.WindSpeed, VNAME.Data.WindDir, VNAME.Data.Checksum, VNAME.Data.CalcChecksum);
-//	SrlSendData(logging_buff, 0, 0);
 
 //	trace_printf("TX20:Windspeed=%2.2f;Direction=%d\r\n", VNAME.Data.WindSpeed, VNAME.Data.WindDirX);
 
+	/* only for debug */
+//	sprintf(logging_buff, "S: %f D: %d RC: %d CC: %d \n\r\0", VNAME.Data.WindSpeed, VNAME.Data.WindDir, VNAME.Data.Checksum, VNAME.Data.CalcChecksum);
+//	SrlSendData(logging_buff, 0, 0);
 }
 
 // Przerwania EXTI do synchronizacji
@@ -254,9 +235,12 @@ void EXTI4_IRQHandler(void) {
 void EXTI9_5_IRQHandler(void) {
   EXTI->PR |= EXTI_PR_PR0 << TX;
 
+  // TIMER is disabled after each complete frame, so it needs to be started once again
+  // when start bit (an endge at the begining of next frame from anemometer) is received
   if ((TIMER->CR1 & TIM_CR1_CEN) == 0 )
   	TIMER->CR1 |= TIM_CR1_CEN;
 //  QL = 0;
+
 
 }
 #elif TX > 9 && TX <= 15
@@ -278,9 +262,15 @@ void TIM1_UP_TIM16_IRQHandler( void ) {
 	TIM1->SR &= ~(1<<0);
 	TX20Batch();
 }
-
 #elif TIMNUMBER == 2
 void TIM2_IRQHandler( void ) {
+
+	if ((GPIOC->ODR & GPIO_ODR_ODR9)  == GPIO_ODR_ODR9) {
+		GPIOC->BSRR |= GPIO_BSRR_BR9;
+	}
+	else if ((GPIOC->ODR & GPIO_ODR_ODR9)  == 0) {
+		GPIOC->BSRR |= GPIO_BSRR_BS9;
+	}
 
 	TIM2->SR &= ~(1<<0);
 	TX20Batch();
@@ -288,12 +278,27 @@ void TIM2_IRQHandler( void ) {
 
 #elif TIMNUMBER == 3
 void TIM3_IRQHandler( void ) {
+
+	if ((GPIOC->ODR & GPIO_ODR_ODR9)  == GPIO_ODR_ODR9) {
+		GPIOC->BSRR |= GPIO_BSRR_BR9;
+	}
+	else if ((GPIOC->ODR & GPIO_ODR_ODR9)  == 0) {
+		GPIOC->BSRR |= GPIO_BSRR_BS9;
+	}
+
 	TIM3->SR &= ~(1<<0);
 	TX20Batch();
 }
 
 #elif TIMNUMBER == 4
 void TIM4_IRQHandler( void ) {
+
+	if ((GPIOC->ODR & GPIO_ODR_ODR9)  == GPIO_ODR_ODR9) {
+		GPIOC->BSRR |= GPIO_BSRR_BR9;
+	}
+	else if ((GPIOC->ODR & GPIO_ODR_ODR9)  == 0) {
+		GPIOC->BSRR |= GPIO_BSRR_BS9;
+	}
 
 	TIM3->SR &= ~(1<<0);
 	TX20Batch();

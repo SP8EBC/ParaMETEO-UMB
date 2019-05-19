@@ -52,7 +52,7 @@ static uint8_t umbMasterId = 0;
 volatile int ii = 0;
 
 char UmbSlaveListen() {
-	if(srlIdle == 1) {			// EOT
+	if(srl_rx_state == SRL_RX_IDLE || srl_rx_state == SRL_RX_DONE || srl_rx_state == SRL_RX_ERROR) {			// EOT
 		SrlReceiveData(8, SOH, 0x00, 0, 6, 12);
 		UmbClearMessageStruct(0);
 		umbSlaveState = 1;
@@ -67,27 +67,27 @@ char UmbSlaveListen() {
 }
 
 char UmbSlavePool() {
-	if (srlIdle == 1 && umbSlaveState == 1) {
-		if (srlRXData[2] == DEV_ID && srlRXData[3] == DEV_CLASS) {
+	if (srl_rx_state == SRL_RX_DONE && umbSlaveState == 1) {
+		if (srl_get_rx_buffer()[2] == DEV_ID && srl_get_rx_buffer()[3] == DEV_CLASS) {
 			// sprawdzanie czy odebrana ramka jest zaadresownana do tego urządzenia
-			int16_t ln = srlRXData[6];
+			int16_t ln = srl_get_rx_buffer()[6];
 			uint16_t crc = 0xFFFF;
 
 			for (int i = 0; i < 9 + ln; i++) {
-				crc = calc_crc(crc, srlRXData[i]);
+				crc = calc_crc(crc, srl_get_rx_buffer()[i]);
 			}
 
 			char crc_l = crc & 0xFF;
 			char crc_h = ((crc & 0xFF00) >> 8);
 
-			if ( crc_l == srlRXData[9 + ln] && crc_h == (srlRXData[10 + ln]) ) {
+			if ( crc_l == srl_get_rx_buffer()[9 + ln] && crc_h == (srl_get_rx_buffer()[10 + ln]) ) {
 
-				umbMessage.masterId = srlRXData[4];
-				umbMessage.masterClass = (srlRXData[5] >> 4) & 0x0F;
+				umbMessage.masterId = srl_get_rx_buffer()[4];
+				umbMessage.masterClass = (srl_get_rx_buffer()[5] >> 4) & 0x0F;
 
-				umbMessage.cmdId = srlRXData[8];
+				umbMessage.cmdId = srl_get_rx_buffer()[8];
 				if (ln > 2)
-					memcpy(umbMessage.payload, srlRXData + 10, ln - 2); // długość len - cmd - verc
+					memcpy(umbMessage.payload, srl_get_rx_buffer() + 10, ln - 2); // długość len - cmd - verc
 				umbMessage.payloadLn = ln - 2;
 				umbMessage.checksum = crc;
 
@@ -102,7 +102,7 @@ char UmbSlavePool() {
 		else {
 			// jeżeli nie jest zaadresowana to zignoruj i słuchaj dalej
 //			trace_printf("UmbSlave: Data addressed not to this device\n"), UmbSlaveListen();
-			  for (ii = 0; ii <= 0x2FFFF; ii++);
+			for (ii = 0; ii <= 0x2FFFF; ii++);
 			UmbSlaveListen();
 		}
 	}
@@ -583,7 +583,7 @@ void UmbClearMessageStruct(char b) {
 	memset(umbMessage.payload, 0x00, MESSAGE_PAYLOAD_MAX);
 }
 
-short UmbPrepareFrameToSend(UmbMessage* pMessage, char* pUsartBuffer) {
+short UmbPrepareFrameToSend(UmbMessage* pMessage, uint8_t* pUsartBuffer) {
 	unsigned short crc = 0xFFFF;
 	short j = 0;
 

@@ -15,7 +15,6 @@ extern "C" {
 
 void TimerConfig(void);
 void EventTimerConfig(void);
-void SendingTimerConfig(void);
 
 #ifdef __cplusplus
 }

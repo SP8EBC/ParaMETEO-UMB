@@ -1,27 +1,57 @@
 #ifndef __SERIAL_H
 #define __SERIAL_H
 
-extern char srlTXData[128];
-extern char srlRXData[128];
-extern int srlTXQueueLen;
-extern int srlTRXDataCounter;
-extern int srlTXing;
-extern int srlRXing;
-extern int srlRXBytesNum;
-extern char srlRxDummy;
-extern char srlStartChar;
-extern char srlStopChar;
-extern int srlIdle;
+#include "stdint.h"
+
+#define RX_BUFFER_LN 512
+#define TX_BUFFER_LN 512
+
+#define SEPARATE_RX_BUFF
+#define SEPARATE_TX_BUFF
+
+#define SRL_DEFAULT_RX_TIMEOUT_IN_MS 400
+
+typedef enum srlRxState {
+	SRL_RX_NOT_CONFIG,
+	SRL_RX_IDLE,
+	SRL_WAITING_TO_RX,
+	SRL_RXING,
+	SRL_RX_DONE,
+	SRL_RX_ERROR
+}srlRxState;
+
+typedef enum srlTxState {
+	SRL_TX_NOT_CONFIG,
+	SRL_TX_IDLE,
+	SRL_TXING,
+	SRL_TX_ERROR
+}srlTxState;
+
+#define SRL_OK							0
+#define SRL_DATA_TOO_LONG 				1
+#define SRL_BUSY						2
+#define SRL_WRONG_BUFFER_PARAM 			3
+#define SRL_WRONG_PARAMS_COMBINATION	4
+
+extern srlRxState srl_rx_state;
+extern srlTxState srl_tx_state;
+extern uint8_t srl_tx_buffer[TX_BUFFER_LN];
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void SrlConfig(void);
-void SrlSendData(char* data, char mode, short leng);
-void SrlStartTX(short leng);
-void USART1_IRQHandler(void);
-void SrlReceiveData(int num, char start, char stop, char echo, char len_addr, char len_modifier);
+
+void srl_init(void);
+uint8_t srl_send_data(uint8_t* data, uint8_t mode, uint16_t leng, uint8_t internal_external);
+uint8_t srl_start_tx(short leng);
+void srl_wait_for_tx_completion();
+void srl_irq_handler(void);
+uint8_t srl_receive_data(int num, char start, char stop, char echo, char len_addr, char len_modifier);
+uint16_t srl_get_num_bytes_rxed();
+uint8_t* srl_get_rx_buffer();
+void srl_keep_timeout(void);
+void srl_switch_timeout(uint8_t disable_enable, uint32_t value);
 
 #ifdef __cplusplus
 }

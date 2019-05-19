@@ -8,17 +8,17 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 
-#include "aprs/ax25.h"
+
+#define _SERIAL_BAUDRATE 28800
+
+#define SYSTICK_TICKS_PER_SECONDS 100
+#define SYSTICK_TICKS_PERIOD 10
+
+extern uint32_t master_time;
 
 extern float ds_t;
 extern float ms_t;
 extern double ms_p;
-
-extern AX25Ctx ax25;
-extern Afsk a;
-extern AX25Call path[2];
-extern uint8_t aprs_msg_len;
-extern char aprs_msg[128];
 
 extern uint8_t commTimeoutCounter;
 
