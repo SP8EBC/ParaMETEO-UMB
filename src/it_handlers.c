@@ -57,6 +57,13 @@ void I2C1_ER_IRQHandler(void) {
 	i2cErrIrqHandler();
 }
 
+void TIM2_IRQHandler( void ) {
+	TIM2->SR &= ~(1<<0);
+	if (delay_5us > 0)
+		delay_5us--;
+
+}
+
 // przerwanie wyzwalne co ~40 sekund
 void TIM3_IRQHandler(void) {
 

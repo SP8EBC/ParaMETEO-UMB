@@ -27,7 +27,7 @@ void TimerConfig(void) {
 void EventTimerConfig(void) {
 	NVIC_SetPriority(TIM3_IRQn, 4);
 	TIM3->PSC = 65535;
-	TIM3->ARR = 13440;   // co 40 sekund
+	TIM3->ARR = 22000;   // co 40 sekund
 	TIM3->CR1 |= TIM_CR1_DIR;
 	TIM3->CR1 &= (0xFFFFFFFF ^ TIM_CR1_DIR);
 	TIM3->CR1 |= TIM_CR1_CEN;

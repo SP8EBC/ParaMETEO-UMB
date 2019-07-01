@@ -95,8 +95,8 @@ main(int argc, char* argv[])
   IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
   IWDG_SetPrescaler(IWDG_Prescaler_128);
   IWDG_SetReload(0xFFF);
-  IWDG_Enable();
-  IWDG_ReloadCounter();
+//  IWDG_Enable();
+//  IWDG_ReloadCounter();
 
 
   LedConfig();
@@ -153,7 +153,7 @@ main(int argc, char* argv[])
 	  if (umbSlaveState == 2) {
 		  GPIO_SetBits(GPIOC, GPIO_Pin_8);
 		  rte_main_umb_comm_timeout_cntr = 0;
-		  for (i = 0; i <= 0x1FFFF; i++);
+//		  for (i = 0; i <= 0x1FFFF; i++);
 		  switch (umbMessage.cmdId) {
 			  case 0x26:
 				  UmbClearMessageStruct(0);
