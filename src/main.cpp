@@ -32,6 +32,8 @@
 #include "rte_main.h"
 #include "rte_wx.h"
 
+#include "wx_handler.h"
+
 //#define _KOZIA_GORA
 
 float ds_t = 0.0;
@@ -101,36 +103,30 @@ main(int argc, char* argv[])
   TimerConfig();
 
 #ifndef _KOZIA_GORA
-  DallasInit(GPIOC, GPIO_Pin_6, GPIO_PinSource6);
+  dallas_init(GPIOC, GPIO_Pin_6, GPIO_PinSource6);
 #else
-  DallasInit(GPIOC, GPIO_Pin_7, GPIO_PinSource7);
+  dallas_init(GPIOC, GPIO_Pin_7, GPIO_PinSource7);
 #endif
   srl_init();
   TX20Init();
   i2cConfigure();
   dht22_init();
 
-  SensorReset(0xEC);
-  ds_t = DallasQuery();
-  SensorReadCalData(0xEC, SensorCalData);
-  SensorStartMeas(0);
+  ms5611_reset(&rte_wx_ms5611_qf);
+  ms5611_read_calibration(SensorCalData, &rte_wx_ms5611_qf);
+  ms5611_trigger_measure(0, 0);
 
-  ds_t = DallasQuery();
-  ms_t = SensorBringTemperature();
-  ds_t = DallasQuery();
-  ms_p = (float)SensorBringPressure();
+  wx_get_all_measurements();
 
-	u.temperature = (char)ds_t;
-
-	  GPIO_ResetBits(GPIOC, GPIO_Pin_8 | GPIO_Pin_9);
-	  EventTimerConfig();
+  GPIO_ResetBits(GPIOC, GPIO_Pin_8 | GPIO_Pin_9);
+  EventTimerConfig();
   UmbSlaveListen();
 
   // Infinite loop
   while (1)
     {
 
-	  if (srl_rx_state == SRL_RX_DONE || srl_rx_state == SRL_RX_IDLE) {
+	  if (srl_rx_state == SRL_RX_DONE || srl_rx_state == SRL_RX_IDLE || srl_rx_state == SRL_WAITING_TO_RX) {
 		  IWDG_ReloadCounter();
 	  }
 

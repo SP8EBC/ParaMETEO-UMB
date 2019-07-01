@@ -18,19 +18,7 @@ volatile char timm = 0;
 
 DallasStruct dallas;
 
-
-void TIM2_IRQHandler(void) {
-	TIM2->SR &= ~(1<<0);
-
-//	if ((GPIOC->ODR & GPIO_Pin_6)== GPIO_Pin_6)
-//		GPIOC->BSRR |= (GPIO_Pin_6 << 16);
-//	else
-//		GPIOC->BSRR |= GPIO_Pin_6;
-	if (delay_5us > 0)
-		delay_5us--;
-}
-
-void DallasInit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, uint16_t GPIO_PinSource) {
+void dallas_init(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, uint16_t GPIO_PinSource) {
 //	GPIO_output.GPIO_Mode = GPIO_Mode_Out_OD;
 //	GPIO_output.GPIO_Pin = GPIO_Pin;
 //	GPIO_output.GPIO_Speed = GPIO_Speed_50MHz;
@@ -44,53 +32,53 @@ void DallasInit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, uint16_t GPIO_PinSource)
 	dallas.GPIO_Pin = GPIO_Pin;
 
 	dallas.GPIO_Mode = (3 << GPIO_PinSource * 4);
-	dallas.GPIO_Cnf = (3 << (GPIO_PinSource * 4 + 2)) /*+ 2*/;
+	dallas.GPIO_Cnf = (3 << GPIO_PinSource * 4) + 2;
 	dallas.shift = GPIO_PinSource * 4 + 2;
 
 	dallas.clear_term = 0xFFFFFFFF ^ (dallas.GPIO_Mode | dallas.GPIO_Cnf);
 	dallas.input_term = 1 << dallas.shift;
 	dallas.output_term = (1 << dallas.shift - 2) | (1 << dallas.shift);
 
-	dallas.GPIO_Pin = GPIO_Pin;
-
 }
 
-void DallasConfigTimer(void) {
+void dallas_config_timer(void) {
 	// Disabling any time-consuming iterrupts
-//	NVIC_DisableIRQ( TIM2_IRQn );			// adc
-	NVIC_DisableIRQ( TIM3_IRQn );			// data transmission initializer
-//	NVIC_DisableIRQ( 25 );	// anemometer
-//
-//	NVIC_SetPriority(TIM4_IRQn, 1);
-//	TIM4->PSC = 0;
-//	TIM4->ARR = 119;
-//	TIM4->CR1 |= TIM_CR1_DIR;
-//	TIM4->CR1 &= (0xFFFFFFFF ^ TIM_CR1_DIR);
+	//NVIC_DisableIRQ( TIM3_IRQn );			// data transmission initializer
+	NVIC_DisableIRQ( TIM4_IRQn );			// data transmission initializer
+	NVIC_DisableIRQ( TIM7_IRQn );			// data transmission initializer
+	NVIC_DisableIRQ( 25 );	// anemometer
+
+	NVIC_SetPriority(TIM2_IRQn, 1);
+	TIM2->PSC = 0;
+	TIM2->ARR = 119;
+	TIM2->CR1 |= TIM_CR1_DIR;
+	TIM2->CR1 &= (0xFFFFFFFF ^ TIM_CR1_DIR);
 	TIM2->CR1 |= TIM_CR1_CEN;
-//	TIM4->DIER |= 1;
+	TIM2->DIER |= 1;
 	NVIC_EnableIRQ( TIM2_IRQn );	// enabling in case that it weren't been enabled earlier
-	timm = 1;
+	//timm = 1;
 }
 
-void DallasDeConfigTimer(void) {
+void dallas_deconfig_timer(void) {
 	TIM2->CR1 &= (0xFFFFFFFF ^ TIM_CR1_CEN);	// disabling timer
 
-	NVIC_DisableIRQ( TIM2_IRQn );
-	NVIC_EnableIRQ( TIM3_IRQn );	// data transmission initializer
-//	NVIC_EnableIRQ( 25 ); // anemometer
-//
-//	// reverting back to APRS timings
-//	NVIC_SetPriority(TIM4_IRQn, 1);
-//	TIM4->PSC = 0;
-//	TIM4->ARR = 2499;
-//	TIM4->CR1 |= TIM_CR1_DIR;
-//	TIM4->CR1 &= (0xFFFFFFFF ^ TIM_CR1_DIR);
-//	TIM4->DIER |= 1;
-////	NVIC_EnableIRQ( TIM4_IRQn );
-	timm = 0;
+	//NVIC_EnableIRQ( TIM3_IRQn );	// adc
+	NVIC_EnableIRQ( TIM4_IRQn );	// data transmission initializer
+	NVIC_EnableIRQ( TIM7_IRQn );	// data transmission initializer
+	NVIC_EnableIRQ( 25 ); // anemometer
+
+	// reverting back to APRS timings
+	//NVIC_SetPriority(TIM4_IRQn, 1);
+	//TIM4->PSC = 0;
+	//TIM4->ARR = 2499;
+	//TIM4->CR1 |= TIM_CR1_DIR;
+	//TIM4->CR1 &= (0xFFFFFFFF ^ TIM_CR1_DIR);
+	//TIM4->DIER |= 1;
+//	NVIC_EnableIRQ( TIM4_IRQn );
+	//timm = 0;
 }
 
-char DallasReset(void) {
+char dallas_reset(void) {
 	// PULLING LINE LOW
 	dallas.GPIOx->CRL &=  dallas.clear_term;
 	dallas.GPIOx->CRL |= dallas.output_term;
@@ -117,7 +105,7 @@ char DallasReset(void) {
 	return 0;
 }
 
-void __attribute__((optimize("O0"))) DallasSendByte(char data) {
+void __attribute__((optimize("O0"))) dallas_send_byte(char data) {
 	char i;
 	for (i = 0; i < 8; i++) {
 		// PULLING LINE LOW
@@ -135,7 +123,7 @@ void __attribute__((optimize("O0"))) DallasSendByte(char data) {
 	}
 }
 
-char __attribute__((optimize("O0"))) DallasReceiveByte(void) {
+char __attribute__((optimize("O0"))) dallas_receive_byte(void) {
 	char data = 0, i;
 
 	for (i = 0; i < 8; i++) {
@@ -167,36 +155,39 @@ char __attribute__((optimize("O0"))) DallasReceiveByte(void) {
 	return data;
 }
 
-float __attribute__((optimize("O0"))) DallasQuery(void) {
+float __attribute__((optimize("O0"))) dallas_query(DallasQF *qf) {
 	unsigned char data[9];
 	int crc;
 	char temp1, temp2, sign, i;
 	unsigned temp3;
 	float temperature = 0.0f;
 
-	GPIO_SetBits(GPIOC, GPIO_Pin_9);
-
 	// ENABLE ONEWIRE DELAY TIMER
-	DallasConfigTimer();
+	dallas_config_timer();
 
 	memset(data, 0x00, 9);
-	DallasReset();
-	DallasSendByte(0xCC);	// ROM skip
-	DallasSendByte(0x44);	// Temperature conversion
+	dallas_reset();
+	dallas_send_byte(0xCC);	// ROM skip
+	dallas_send_byte(0x44);	// Temperature conversion
 	delay_5us = 190000;		// 800msec delay for conversion
 	while (delay_5us != 0);
-	DallasReset();
-	DallasSendByte(0xCC);
-	DallasSendByte(0xBE);	// read scratchpad
+	dallas_reset();
+	dallas_send_byte(0xCC);
+	dallas_send_byte(0xBE);	// read scratchpad
 	for (i = 0; i <= 8; i++)
-		data[i] = DallasReceiveByte();
+		data[i] = dallas_receive_byte();
 
 	// DISABLE ONEWIRE DELAY TIMER
-	DallasDeConfigTimer();
+	dallas_deconfig_timer();
 
-	crc = CalculateCRC8(data, 8);
+	crc = dallas_calculate_crc8(data, 8);
 
-	GPIO_ResetBits(GPIOC, GPIO_Pin_9);
+	if ((data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x00 && data[4] == 0x00 && data[5] == 0x00 && data[6] == 0x00) ||
+			(data[0] == 0xFF && data[1] == 0xFF && data[2] == 0xFF && data[3] == 0xFF && data[4] == 0xFF && data[5] == 0xFF && data[6] == 0xFF))
+	{
+		*qf = DALLAS_QF_NOT_AVALIABLE;
+		return -128.0f;
+	}
 
 	if (crc == data[8]) {
 
@@ -210,14 +201,22 @@ float __attribute__((optimize("O0"))) DallasQuery(void) {
 			temperature = -1.0f * (128.0f - (float)temp1 - (float)temp2 * 0.0625f);
 	}
 	else {
-		return 0.0f;
+		*qf = DALLAS_QF_NOT_AVALIABLE;
+		return -128.0f;
 	}
+
+	if (temperature < -50.0f || temperature > 120.0f)
+		*qf = DALLAS_QF_NOT_AVALIABLE;
+	else if (temperature < -25.0f || temperature > 38.75f)
+		*qf = DALLAS_QF_DEGRADATED;
+	else
+		*qf = DALLAS_QF_FULL;
 
 	return temperature;
 
 }
 
-uint8_t CalculateCRC8(uint8_t *addr, uint8_t len) {
+uint8_t dallas_calculate_crc8(uint8_t *addr, uint8_t len) {
 	uint8_t crc = 0, inbyte, i, mix;
 
 	while (len--) {

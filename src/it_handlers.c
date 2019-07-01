@@ -8,6 +8,7 @@
 #include <stm32f10x.h>
 #include "main.h"
 #include "delay.h"
+#include "wx_handler.h"
 #include "diag/Trace.h"
 #include "drivers/dallas.h"
 #include "drivers/ms5611.h"
@@ -67,31 +68,11 @@ void TIM3_IRQHandler(void) {
 	if (rte_main_umb_comm_timeout_cntr > 8)
 		NVIC_SystemReset();
 
-	ds_t = DallasQuery();
-	u.temperature = (char)ds_t;
 	 GPIO_SetBits(GPIOC, GPIO_Pin_8);
 
-	switch (s) {
-	case 0:
-		ds_t = DallasQuery();
-		s = 1;
-		break;
-	case 1:
-		  ms_t = SensorBringTemperature();
-		  s = 2;
-		  break;
-	case 2:
-		  ms_p = (float)SensorBringPressure();
-		  s = 3;
-		break;
-	case 3:
-		if (dht22State == DHT22_STATE_DONE || dht22State == DHT22_STATE_TIMEOUT)
-			dht22State = DHT22_STATE_IDLE;
-		s = 0;
-		break;
-	default: s = 0; break;
+	 wx_get_all_measurements();
 
-	}
+
 	 GPIO_ResetBits(GPIOC, GPIO_Pin_8);
 	// co 10 sekund
 }

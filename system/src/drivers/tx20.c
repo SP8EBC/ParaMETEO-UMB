@@ -31,7 +31,6 @@ Anemometer VNAME;	// Deklaracja zmiennej strukturalnej typu Anemometer
 
 #define PI 3.14159265
 
-#ifdef _METEO
 void inline TX20BlinkLed(void) {
 	if ((GPIOC->ODR & GPIO_ODR_ODR9)  == GPIO_ODR_ODR9) {
 		GPIOC->BSRR |= GPIO_BSRR_BR9;
@@ -41,7 +40,6 @@ void inline TX20BlinkLed(void) {
 	}
 
 }
-#endif
 
 void TX20Init(void) {
 	char i;
@@ -55,10 +53,8 @@ void TX20Init(void) {
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
-#ifdef _METEO
 
 	GPIO_ResetBits(GPIOB, GPIO_Pin_8);
-#endif
 
 	TIMER->PSC = 191;
 	TIMER->ARR = 75;
@@ -107,9 +103,7 @@ void TX20Batch(void) {
 		else;
 		if (DCD == 1)
 			if (FC == 0x29) {
-#ifdef _METEO
 				TX20BlinkLed();
-#endif
 				if (OE >= 3) {
 					TX20DataParse();
 					OE = 0;
@@ -128,7 +122,7 @@ void TX20Batch(void) {
 }
 
 float TX20DataAverage(void) {
-	char i;
+	uint8_t i;
 	short x = 0,xx = 0,y = 0,yy = 0, out = 0;
 	x = (short)(100.0f * cosf((float)VNAME.Data.WindDirX * PI/180.0f));
 	y = (short)(100.0f * sinf((float)VNAME.Data.WindDirX * PI/180.0f));
@@ -202,7 +196,7 @@ void TX20DataParse(void) {
 float TX20FindMaxSpeed(void) {
 	float max_wind_speed = 0.0f;
 	unsigned char d;
-	for(d = 1; d <= 15 ; d++) {
+	for(d = 1; d <= TX20_BUFF_LN ; d++) {
 		if (VNAME.HistoryAVG[d].WindSpeed > max_wind_speed) {
 				max_wind_speed = VNAME.HistoryAVG[d].WindSpeed;
 		}
