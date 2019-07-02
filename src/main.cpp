@@ -36,10 +36,6 @@
 
 //#define _KOZIA_GORA
 
-float ds_t = 0.0;
-float ms_t = 0.0f;
-double ms_p = 0.0;
-
 dht22Values dht, dht_valid;
 
 UmbMeteoData u;
@@ -153,7 +149,7 @@ main(int argc, char* argv[])
 	  if (umbSlaveState == 2) {
 		  GPIO_SetBits(GPIOC, GPIO_Pin_8);
 		  rte_main_umb_comm_timeout_cntr = 0;
-//		  for (i = 0; i <= 0x1FFFF; i++);
+
 		  switch (umbMessage.cmdId) {
 			  case 0x26:
 				  UmbClearMessageStruct(0);
@@ -170,10 +166,10 @@ main(int argc, char* argv[])
 			  case 0x23:
 //				  UmbClearMessageStruct(0);
 				  u.humidity = (char)dht_valid.humidity;
-				  u.fTemperature = ds_t;
-				  u.temperature = ds_t;
-				  u.qfe = ms_p;
-				  u.qnh = CalcQNHFromQFE(ms_p, 674, ds_t);
+				  u.fTemperature = rte_wx_temperature_dallas_valid;
+				  u.temperature = (char)rte_wx_temperature_dallas_valid;
+				  u.qfe = rte_wx_pressure_valid;
+				  u.qnh = CalcQNHFromQFE(rte_wx_pressure_valid, 674, rte_wx_temperature_dallas_valid);
 				  u.winddirection = TX20.HistoryAVG[0].WindDirX;
 				  u.windspeed = TX20.HistoryAVG[0].WindSpeed;
 				  u.windgusts = TX20FindMaxSpeed();
