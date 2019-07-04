@@ -57,6 +57,11 @@ void I2C1_ER_IRQHandler(void) {
 	i2cErrIrqHandler();
 }
 
+void EXTI4_IRQHandler(void) {
+  EXTI->PR |= EXTI_PR_PR4;
+  dht22_irq_handler();
+}
+
 void TIM2_IRQHandler( void ) {
 	TIM2->SR &= ~(1<<0);
 	if (delay_5us > 0)
