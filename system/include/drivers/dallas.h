@@ -14,6 +14,8 @@ extern "C" {
 #endif
 
 #include <stm32f10x_gpio.h>
+#include "station_config.h"
+
 
 
 extern volatile int delay_5us;
@@ -22,6 +24,7 @@ extern volatile char timm;
 typedef struct DallasStruct {
 	GPIO_TypeDef* GPIOx;           /*!< GPIOx port to be used for I/O functions */
 	uint16_t GPIO_Pin;             /*!< GPIO Pin to be used for I/O functions */
+	uint16_t GPIO_Pin_input;
 	uint32_t GPIO_Cnf;             /*!< GPIO Pin to be used for I/O functions */
 	uint32_t GPIO_Mode;             /*!< GPIO Pin to be used for I/O functions */
 	uint32_t input_term;
@@ -45,6 +48,9 @@ float dallas_query(DallasQF *qf);
 void dallas_send_byte(char data);
 char dallas_receive_byte(void);
 uint8_t dallas_calculate_crc8(uint8_t *addr, uint8_t len);
+
+
+
 
 /* C++ detection */
 #ifdef __cplusplus

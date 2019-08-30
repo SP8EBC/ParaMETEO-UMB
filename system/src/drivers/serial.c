@@ -93,8 +93,6 @@ void srl_init(void) {
 	//srlTXing = 0;
 	//srlIdle = 1;
 	PORT->SR &= (0xFFFFFFFF ^ USART_SR_TC);
-//	PORT->CR1 |= USART_CR1_IDLEIE;			// zgġaszane kiedy przy odbiorze magistrala przejdzie w idle
-//	PORT->CR1 |= USART_CR1_RXNEIE;			// przerwanie zgġoszone po odbiorze bajtu gdy bufor nie jest pusty
 	srl_rx_state = SRL_RX_IDLE;
 	srl_tx_state = SRL_TX_IDLE;
 

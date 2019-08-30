@@ -11,8 +11,8 @@
 
 #include <stdint.h>
 
-#define DEV_CLASS (char)(0x0C << 4)
-#define DEV_ID (char)2
+#define DEV_CLASS (uint8_t)(0x0C << 4)
+#define DEV_ID (uint8_t)2
 
 #define DEV_NAME "ParaMETEO"
 
@@ -67,7 +67,7 @@ char UmbSlaveListen() {
 }
 
 char UmbSlavePool() {
-	if (srl_rx_state == SRL_RX_DONE && umbSlaveState == 1) {
+	if (srl_rx_state == SRL_RX_DONE && umbSlaveState == UMB_STATE_WAITING_FOR_MESSAGE) {
 		if (srl_get_rx_buffer()[2] == DEV_ID && srl_get_rx_buffer()[3] == DEV_CLASS) {
 			// sprawdzanie czy odebrana ramka jest zaadresownana do tego urządzenia
 			int16_t ln = srl_get_rx_buffer()[6];
@@ -77,26 +77,26 @@ char UmbSlavePool() {
 				crc = calc_crc(crc, srl_get_rx_buffer()[i]);
 			}
 
-			char crc_l = crc & 0xFF;
-			char crc_h = ((crc & 0xFF00) >> 8);
+			uint8_t crc_l = crc & 0xFF;
+			uint8_t crc_h = ((crc & 0xFF00) >> 8);
 
 			if ( crc_l == srl_get_rx_buffer()[9 + ln] && crc_h == (srl_get_rx_buffer()[10 + ln]) ) {
 
-				umbMessage.masterId = srl_get_rx_buffer()[4];
+				umbMessage.masterId = srl_get_rx_buffer()[4];			// store master ID which requests something
 				umbMessage.masterClass = (srl_get_rx_buffer()[5] >> 4) & 0x0F;
 
-				umbMessage.cmdId = srl_get_rx_buffer()[8];
+				umbMessage.cmdId = srl_get_rx_buffer()[8];		// command ID
 				if (ln > 2)
 					memcpy(umbMessage.payload, srl_get_rx_buffer() + 10, ln - 2); // długość len - cmd - verc
 				umbMessage.payloadLn = ln - 2;
 				umbMessage.checksum = crc;
 
-				umbSlaveState = 2;
+				umbSlaveState = UMB_STATE_MESSAGE_RXED;
 			}
 			else {
 //				trace_printf("UmbSlave: Wrong CRC in data %d bytes long with cmdId 0x%02x\n", ln, srlRXData[8]);
 //				trace_printf("UmbSlave: CRC should be 0x%04X but was 0x%04X\n", crc, (srlRXData[9 + ln] | srlRXData[10 + ln] << 8) );
-				umbSlaveState = 3;
+				umbSlaveState = UMB_STATE_MESSAGE_RXED_WRONG_CRC;
 				}
 			}
 		else {
@@ -155,8 +155,8 @@ char UmbDeviceInformationRequestResponse(void) {
 			umbMessage.cmdId = 0x2D;
 			umbMessage.payload[0] = 0x00;
 			umbMessage.payload[1] = 0x12;
-			umbMessage.payload[2] = 0x0A;	// hardware
-			umbMessage.payload[3] = 0x0A;	// software
+			umbMessage.payload[2] = 0x0A;	// hardware	version
+			umbMessage.payload[3] = 0x0A;	// software	version
 			umbMessage.payloadLn = 4;
 			break;
 

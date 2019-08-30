@@ -14,6 +14,12 @@ extern uint8_t umbSlaveState;
 
 #define MESSAGE_PAYLOAD_MAX 100
 
+#define UMB_STATE_UNINITIALIZED 			0
+#define UMB_STATE_WAITING_FOR_MESSAGE 		1
+#define UMB_STATE_MESSAGE_RXED 				2
+#define UMB_STATE_MESSAGE_RXED_WRONG_CRC 	3
+#define UMB_STATE_PROCESSING_DONE			4
+
 typedef struct UmbMessage {
 	int8_t cmdId;
 	int8_t masterClass;

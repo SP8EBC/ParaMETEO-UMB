@@ -34,6 +34,8 @@
 
 #include "wx_handler.h"
 
+#include "station_config.h"
+
 //#define _KOZIA_GORA
 
 dht22Values dht, dht_valid;
@@ -99,7 +101,11 @@ main(int argc, char* argv[])
   TimerConfig();
 
 #ifndef _KOZIA_GORA
-  dallas_init(GPIOC, GPIO_Pin_6, GPIO_PinSource6);
+	#ifndef _DALLAS_SPLIT_PIN
+	  dallas_init(GPIOC, GPIO_Pin_6, GPIO_PinSource6);
+	#else
+	  dallas_init(GPIOB, GPIO_Pin_5, GPIO_PinSource5);
+	#endif
 #else
   dallas_init(GPIOC, GPIO_Pin_7, GPIO_PinSource7);
 #endif
@@ -143,10 +149,10 @@ main(int argc, char* argv[])
 		}
 
 	  UmbSlavePool();
-	  if (umbSlaveState == 3) {
-		  NVIC_SystemReset();
+	  if (umbSlaveState == UMB_STATE_MESSAGE_RXED_WRONG_CRC) {
+		  UmbSlaveListen();
 	  }
-	  if (umbSlaveState == 2) {
+	  if (umbSlaveState == UMB_STATE_MESSAGE_RXED) {
 		  GPIO_SetBits(GPIOC, GPIO_Pin_8);
 		  rte_main_umb_comm_timeout_cntr = 0;
 
@@ -155,13 +161,12 @@ main(int argc, char* argv[])
 				  UmbClearMessageStruct(0);
 				  UmbStatusRequestResponse();
 				  srl_start_tx(UmbPrepareFrameToSend(&umbMessage, srl_tx_buffer));
-				  //while(srlTXing != 0);
-				  umbSlaveState = 4;
+				  umbSlaveState = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  case 0x2D:
 				  UmbDeviceInformationRequestResponse();
 				  srl_start_tx(UmbPrepareFrameToSend(&umbMessage, srl_tx_buffer));
-				  umbSlaveState = 4;
+				  umbSlaveState = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  case 0x23:
 //				  UmbClearMessageStruct(0);
@@ -175,12 +180,12 @@ main(int argc, char* argv[])
 				  u.windgusts = TX20FindMaxSpeed();
 				  UmbOnlineDataRequestResponse(&u, 0);
 				  srl_start_tx(UmbPrepareFrameToSend(&umbMessage, srl_tx_buffer));
-				  umbSlaveState = 4;
+				  umbSlaveState = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  case 0x2F:
 				  UmbMultiOnlineDataRequestResponse(&u, 0);
 				  srl_start_tx(UmbPrepareFrameToSend(&umbMessage, srl_tx_buffer));
-				  umbSlaveState = 4;
+				  umbSlaveState = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  default:
 				  UmbClearMessageStruct(0);
@@ -189,7 +194,7 @@ main(int argc, char* argv[])
 		  }
 		  GPIO_ResetBits(GPIOC, GPIO_Pin_8);
 	  }
-	  if (umbSlaveState == 4 && srl_tx_state == SRL_TX_IDLE)
+	  if (umbSlaveState == UMB_STATE_PROCESSING_DONE && srl_tx_state == SRL_TX_IDLE)
 		  UmbSlaveListen();
 
 
