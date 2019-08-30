@@ -40,7 +40,7 @@
 
 dht22Values dht, dht_valid;
 
-UmbMeteoData u;
+umbMeteoData_t u;
 
 volatile int i = 0;
 
@@ -122,7 +122,7 @@ main(int argc, char* argv[])
 
   GPIO_ResetBits(GPIOC, GPIO_Pin_8 | GPIO_Pin_9);
   EventTimerConfig();
-  UmbSlaveListen();
+  umb_slave_listen();
 
   // Infinite loop
   while (1)
@@ -148,25 +148,25 @@ main(int argc, char* argv[])
 			default: break;
 		}
 
-	  UmbSlavePool();
-	  if (umbSlaveState == UMB_STATE_MESSAGE_RXED_WRONG_CRC) {
-		  UmbSlaveListen();
+	  umb_slave_pooling();
+	  if (umb_slave_state == UMB_STATE_MESSAGE_RXED_WRONG_CRC) {
+		  umb_slave_listen();
 	  }
-	  if (umbSlaveState == UMB_STATE_MESSAGE_RXED) {
+	  if (umb_slave_state == UMB_STATE_MESSAGE_RXED) {
 		  GPIO_SetBits(GPIOC, GPIO_Pin_8);
 		  rte_main_umb_comm_timeout_cntr = 0;
 
-		  switch (umbMessage.cmdId) {
+		  switch (umb_message.cmdId) {
 			  case 0x26:
-				  UmbClearMessageStruct(0);
-				  UmbStatusRequestResponse();
-				  srl_start_tx(UmbPrepareFrameToSend(&umbMessage, srl_tx_buffer));
-				  umbSlaveState = UMB_STATE_PROCESSING_DONE;
+				  umb_clear_message_struct(0);
+				  umb_callback_status_request();
+				  srl_start_tx(umb_prepare_frame_to_send(&umb_message, srl_tx_buffer));
+				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  case 0x2D:
-				  UmbDeviceInformationRequestResponse();
-				  srl_start_tx(UmbPrepareFrameToSend(&umbMessage, srl_tx_buffer));
-				  umbSlaveState = UMB_STATE_PROCESSING_DONE;
+				  umb_callback_device_information_request();
+				  srl_start_tx(umb_prepare_frame_to_send(&umb_message, srl_tx_buffer));
+				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  case 0x23:
 //				  UmbClearMessageStruct(0);
@@ -178,24 +178,24 @@ main(int argc, char* argv[])
 				  u.winddirection = TX20.HistoryAVG[0].WindDirX;
 				  u.windspeed = TX20.HistoryAVG[0].WindSpeed;
 				  u.windgusts = TX20FindMaxSpeed();
-				  UmbOnlineDataRequestResponse(&u, 0);
-				  srl_start_tx(UmbPrepareFrameToSend(&umbMessage, srl_tx_buffer));
-				  umbSlaveState = UMB_STATE_PROCESSING_DONE;
+				  umb_callback_online_data_request(&u, 0);
+				  srl_start_tx(umb_prepare_frame_to_send(&umb_message, srl_tx_buffer));
+				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  case 0x2F:
-				  UmbMultiOnlineDataRequestResponse(&u, 0);
-				  srl_start_tx(UmbPrepareFrameToSend(&umbMessage, srl_tx_buffer));
-				  umbSlaveState = UMB_STATE_PROCESSING_DONE;
+				  umb_callback_multi_online_data_request(&u, 0);
+				  srl_start_tx(umb_prepare_frame_to_send(&umb_message, srl_tx_buffer));
+				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  default:
-				  UmbClearMessageStruct(0);
-				  UmbSlaveListen();
+				  umb_clear_message_struct(0);
+				  umb_slave_listen();
 				  break;
 		  }
 		  GPIO_ResetBits(GPIOC, GPIO_Pin_8);
 	  }
-	  if (umbSlaveState == UMB_STATE_PROCESSING_DONE && srl_tx_state == SRL_TX_IDLE)
-		  UmbSlaveListen();
+	  if (umb_slave_state == UMB_STATE_PROCESSING_DONE && srl_tx_state == SRL_TX_IDLE)
+		  umb_slave_listen();
 
 
     }

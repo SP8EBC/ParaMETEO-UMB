@@ -25,7 +25,7 @@
 static char s = -1;
 static char wx_freq = 3, wxi = 2;
 
-extern UmbMeteoData u;
+extern umbMeteoData_t u;
 
 // Systick interrupt used for time measurements, checking timeouts and SysTick_Handler
 void SysTick_Handler(void) {

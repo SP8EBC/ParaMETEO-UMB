@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 
-extern uint8_t umbSlaveState;
+extern uint8_t umb_slave_state;
 
 #define MESSAGE_PAYLOAD_MAX 100
 
@@ -20,7 +20,7 @@ extern uint8_t umbSlaveState;
 #define UMB_STATE_MESSAGE_RXED_WRONG_CRC 	3
 #define UMB_STATE_PROCESSING_DONE			4
 
-typedef struct UmbMessage {
+typedef struct umbMessage_t {
 	int8_t cmdId;
 	int8_t masterClass;
 	uint8_t masterId;
@@ -28,32 +28,32 @@ typedef struct UmbMessage {
 	uint8_t payload[MESSAGE_PAYLOAD_MAX];
 	int8_t payloadLn;
 
-} UmbMessage;
+} umbMessage_t;
 
-typedef struct UmbMeteoData {
+typedef struct umbMeteoData_t {
 	float fTemperature;
 	char temperature;
 	char humidity;
 	unsigned short qfe, qnh;
 	float windspeed, windgusts;
 	short winddirection;
-}UmbMeteoData;
+}umbMeteoData_t;
 
-extern UmbMessage umbMessage;
+extern umbMessage_t umb_message;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-char UmbSlaveListen();
-char UmbSlavePool();
-char UmbStatusRequestResponse(void);
-char UmbDeviceInformationRequestResponse(void);
-char UmbOnlineDataRequestResponse(UmbMeteoData *pMeteo, char status);
-char UmbMultiOnlineDataRequestResponse(UmbMeteoData *pMeteo, char status);
+char umb_slave_listen();
+char umb_slave_pooling();
+char umb_callback_status_request(void);
+char umb_callback_device_information_request(void);
+char umb_callback_online_data_request(umbMeteoData_t *pMeteo, char status);
+char umb_callback_multi_online_data_request(umbMeteoData_t *pMeteo, char status);
 
-void UmbClearMessageStruct(char b);
-short UmbPrepareFrameToSend(UmbMessage* pMessage, uint8_t* pUsartBuffer);
+void umb_clear_message_struct(char b);
+short umb_prepare_frame_to_send(umbMessage_t* pMessage, uint8_t* pUsartBuffer);
 
 unsigned short calc_crc(unsigned short crc_buff, unsigned char input);
 
