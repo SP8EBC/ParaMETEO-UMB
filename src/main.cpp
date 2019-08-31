@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <main.h>
 #include <stm32f10x.h>
 #include <stm32f10x_rcc.h>
 #include "stm32f10x_iwdg.h"
@@ -169,12 +170,12 @@ main(int argc, char* argv[])
 		  switch (umb_message.cmdId) {
 			  case 0x26:
 				  umb_clear_message_struct(0);
-				  umb_callback_status_request();
+				  umb_callback_status_request_0x26();
 				  srl_start_tx(umb_prepare_frame_to_send(&umb_message, srl_tx_buffer));
 				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  case 0x2D:
-				  umb_callback_device_information_request();
+				  umb_callback_device_information_0x2d();
 				  srl_start_tx(umb_prepare_frame_to_send(&umb_message, srl_tx_buffer));
 				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;
@@ -184,16 +185,18 @@ main(int argc, char* argv[])
 				  rte_wx_umb.fTemperature = rte_wx_temperature_dallas_valid;
 				  rte_wx_umb.temperature = (char)rte_wx_temperature_dallas_valid;
 				  rte_wx_umb.qfe = rte_wx_pressure_valid;
+				  rte_wx_umb.sqfe = round(rte_wx_umb.qfe);
 				  rte_wx_umb.qnh = CalcQNHFromQFE(rte_wx_pressure_valid, 674, rte_wx_temperature_dallas_valid);
+				  rte_wx_umb.sqnh = round(CalcQNHFromQFE(rte_wx_pressure_valid, 674, rte_wx_temperature_dallas_valid));
 				  rte_wx_umb.winddirection = TX20.HistoryAVG[0].WindDirX;
 				  rte_wx_umb.windspeed = TX20.HistoryAVG[0].WindSpeed;
 				  rte_wx_umb.windgusts = TX20FindMaxSpeed();
-				  umb_callback_online_data_request(&rte_wx_umb, 0);
+				  umb_callback_online_data_request_0x23(&rte_wx_umb, 0);
 				  srl_start_tx(umb_prepare_frame_to_send(&umb_message, srl_tx_buffer));
 				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  case 0x2F:
-				  umb_callback_multi_online_data_request(&umb_message, 0);
+				  umb_callback_multi_online_data_request_0x2f(&rte_wx_umb, 0);
 				  srl_start_tx(umb_prepare_frame_to_send(&umb_message, srl_tx_buffer));
 				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;

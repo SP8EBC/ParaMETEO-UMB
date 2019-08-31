@@ -10,6 +10,7 @@
 #include "drivers/serial.h"
 
 #include <stdint.h>
+#include <stdio.h>
 
 #define DEV_CLASS (uint8_t)(0x0C << 4)
 #define DEV_ID (uint8_t)2
@@ -40,6 +41,24 @@
 #define AVERAGE 0x13
 #define SUM 0x14
 #define VECTOR_AVG 0x15
+
+// 3.9.8 Channel Assignment Device Class 7 Compact Weather Station
+#define CH_CURRENT_TEMPERATURE_FLOAT 	100U
+#define CH_CURRENT_TEMPERATURE_INT		101U
+#define CH_CURRENT_HUMIDITY				200U
+#define CH_CURRENT_QFE_FLOAT			300U
+#define CH_CURRENT_QFE_INT				301U
+#define CH_CURRENT_QNH_FLOAT			305U
+#define CH_CURRENT_QNH_INT				306U
+#define CH_AVERGE_WIND_MS				460U
+#define CH_MAX_WIND_MS					440U
+#define CH_AVERAGE_WIND_DIR				560U //580
+#define CH_AVERAGE_WIND_VCT_DIR			580U
+
+#define CH_CHANNEL_CNT					11
+
+#define get_lsb(x) ((uint8_t)(x & 0xFF))
+#define get_msb(x) ((uint8_t)((x & 0xFF00) >> 8))
 
 
 umbMessage_t umb_message;
@@ -106,13 +125,15 @@ char umb_slave_pooling() {
 			umb_slave_listen();
 		}
 	}
-		else;
+		else {
+			;
+		}
 
 
 	return 0;
 }
 
-char umb_callback_status_request(void) {
+char umb_callback_status_request_0x26(void) {
 //	UmbClearMessageStruct();
 	umb_message.cmdId = 0x26;
 	umb_message.payload[0] = 0x00;
@@ -128,8 +149,7 @@ char umb_return_status(char cmdId, char status) {
 	return 0;
 }
 
-char umb_callback_device_information_request(void) {
-//  	trace_printf("UmbSlave: cmd[DEVICE_INFO] option 0x%02x\n", umbMessage.payload[0]);
+char umb_callback_device_information_0x2d(void) {
   	uint16_t ch = 0;
   	int8_t temp = 0;
 	umb_message.payloadLn = 0;
@@ -196,7 +216,7 @@ char umb_callback_device_information_request(void) {
 			umb_message.cmdId = 0x2D;
 			umb_message.payload[0] = 0x00;	// zawsze 0x00 -- satus
 			umb_message.payload[1] = 0x15;	// zawsze info
-			umb_message.payload[2] = 0x08; // liczba kanalow LSB 0x01
+			umb_message.payload[2] = CH_CHANNEL_CNT; // liczba kanalow LSB 0x01
 			umb_message.payload[3] = 0x00; // liczba kanalow MSB
 			umb_message.payload[4] = 0x01; // liczba blokow
 			umb_message.payloadLn = 5;
@@ -213,24 +233,30 @@ char umb_callback_device_information_request(void) {
 				umb_message.payload[0] = 0x00; // zawsze 0x00
 				umb_message.payload[1] = 0x16; // zawsze info
 				umb_message.payload[2] = 0x00; // option -> block number
-				umb_message.payload[3] = 0x08; // liczba kanalow 0x08
-				umb_message.payload[4] = 0x64; // kanal 100 LSB
-				umb_message.payload[5] = 0x00; // kanal 100 MSB
-				umb_message.payload[6] = 0xC8; // kanal 200 LSB
-				umb_message.payload[7] = 0x00; // kanal 200 MSB
-				umb_message.payload[8] = 0x2C; // kanal 300 LSB
-				umb_message.payload[9] = 0x01; // kanal 300 MSB
-				umb_message.payload[10] = 0x31; // kanal 305 LSB
-				umb_message.payload[11] = 0x01; // kanal 305 MSB
-				umb_message.payload[12] = 0xCC; // kanal 440 LSB
-				umb_message.payload[13] = 0x01; // kanal 440 MSB
-				umb_message.payload[14] = 0xB8; // kanal 460 LSB
-				umb_message.payload[15] = 0x01; // kanal 460 MSB
-				umb_message.payload[16] = 0x30; // kanal 560 LSB
-				umb_message.payload[17] = 0x02; // kanal 560 MSB
-				umb_message.payload[16] = 0x44; // kanal 580 LSB
-				umb_message.payload[17] = 0x02; // kanal 580 MSB
-				umb_message.payloadLn = 18;
+				umb_message.payload[3] = CH_CHANNEL_CNT; // liczba kanalow 0x08
+				umb_message.payload[4] = get_lsb(CH_CURRENT_TEMPERATURE_FLOAT); // kanal 100 LSB
+				umb_message.payload[5] = get_msb(CH_CURRENT_TEMPERATURE_FLOAT); // kanal 100 MSB
+				umb_message.payload[6] = get_lsb(CH_CURRENT_TEMPERATURE_INT); // kanal 101 LSB
+				umb_message.payload[7] = get_msb(CH_CURRENT_TEMPERATURE_INT); // kanal 101 MSB
+				umb_message.payload[8] = get_lsb(CH_CURRENT_HUMIDITY); // kanal 200 LSB
+				umb_message.payload[9] = get_msb(CH_CURRENT_HUMIDITY); // kanal 200 MSB
+				umb_message.payload[10] = get_lsb(CH_CURRENT_QFE_FLOAT); // kanal 300 LSB
+				umb_message.payload[11] = get_msb(CH_CURRENT_QFE_FLOAT); // kanal 300 MSB
+				umb_message.payload[12] = get_lsb(CH_CURRENT_QFE_INT); // kanal 301 LSB
+				umb_message.payload[13] = get_msb(CH_CURRENT_QFE_INT); // kanal 301 MSB
+				umb_message.payload[14] = get_lsb(CH_CURRENT_QNH_FLOAT); // kanal 305 LSB
+				umb_message.payload[15] = get_msb(CH_CURRENT_QNH_FLOAT); // kanal 305 MSB
+				umb_message.payload[16] = get_lsb(CH_CURRENT_QNH_INT); // kanal 306 LSB
+				umb_message.payload[17] = get_msb(CH_CURRENT_QNH_INT); // kanal 306 MSB
+				umb_message.payload[18] = get_lsb(CH_MAX_WIND_MS); // kanal 440 LSB
+				umb_message.payload[19] = get_msb(CH_MAX_WIND_MS); // kanal 440 MSB
+				umb_message.payload[20] = get_lsb(CH_AVERGE_WIND_MS); // kanal 460 LSB
+				umb_message.payload[21] = get_msb(CH_AVERGE_WIND_MS);; // kanal 460 MSB
+				umb_message.payload[22] = get_lsb(CH_AVERAGE_WIND_DIR); // kanal 560 LSB
+				umb_message.payload[23] = get_msb(CH_AVERAGE_WIND_DIR); // kanal 560 MSB
+				umb_message.payload[24] = get_lsb(CH_AVERAGE_WIND_VCT_DIR); // kanal 580 LSB
+				umb_message.payload[25] = get_msb(CH_AVERAGE_WIND_VCT_DIR); // kanal 580 MSB
+				umb_message.payloadLn = 26;
 			}
 			break;
 
@@ -256,103 +282,117 @@ char umb_callback_device_information_request(void) {
 			umb_message.payload[0] = 0x00;	// zawsze 0x00
 			umb_message.payload[1] = 0x30;	// zawsze info
 			switch (ch) {
-				case 100U:
-					umb_message.payload[2] = 0x64;	// kanal LSB
-					umb_message.payload[3] = 0x00;	// kanal LSB
+				case CH_CURRENT_TEMPERATURE_FLOAT:
+					umb_message.payload[2] = get_lsb(CH_CURRENT_TEMPERATURE_FLOAT);	// kanal LSB
+					umb_message.payload[3] = get_msb(CH_CURRENT_TEMPERATURE_FLOAT);	// kanal MSB
 					umb_message.payloadLn =  (sprintf(umb_message.payload + 4, "Temperatura         ")) + 4; // 20
 					temp = sprintf(umb_message.payload + umb_message.payloadLn, "StopnieC       "); // 15
 					umb_message.payloadLn += temp;
 					umb_message.payload[umb_message.payloadLn++] = CURRENT; // current value
-					umb_message.payload[umb_message.payloadLn++] = SIGNED_CHAR;
-					umb_message.payload[umb_message.payloadLn++] = (uint8_t)-127;
-					umb_message.payload[umb_message.payloadLn++] = (uint8_t)127;
+					umb_message.payload[umb_message.payloadLn++] = FLOAT;
+					umb_message.payloadLn = umb_insert_float_to_buffer(-127.0f, umb_message.payload, umb_message.payloadLn);
+					umb_message.payloadLn = umb_insert_float_to_buffer(127.0f, umb_message.payload, umb_message.payloadLn);
 					break;
 
-				case 200U:
-					umb_message.payload[2] = 0xC8;	// kanal LSB
-					umb_message.payload[3] = 0x00;	// kanal LSB
+				case CH_CURRENT_TEMPERATURE_INT:
+					umb_message.payload[2] = get_lsb(CH_CURRENT_TEMPERATURE_INT);	// kanal LSB
+					umb_message.payload[3] = get_msb(CH_CURRENT_TEMPERATURE_INT);	// kanal MSB
+					umb_message.payloadLn =  (sprintf(umb_message.payload + 4, "Temperatura         ")) + 4; // 20
+					temp = sprintf(umb_message.payload + umb_message.payloadLn, "StopnieC       "); // 15
+					umb_message.payloadLn += temp;
+					umb_message.payload[umb_message.payloadLn++] = CURRENT; // current value
+					umb_message.payload[umb_message.payloadLn++] = UNSIGNED_CHAR;
+					umb_message.payload[umb_message.payloadLn++] = (uint8_t)-127;		// minimum
+					umb_message.payload[umb_message.payloadLn++] = 127;
+					break;
+
+				case CH_CURRENT_HUMIDITY:
+					umb_message.payload[2] = get_lsb(CH_CURRENT_HUMIDITY);	// kanal LSB
+					umb_message.payload[3] = get_msb(CH_CURRENT_HUMIDITY);	// kanal LSB
 					umb_message.payloadLn = (sprintf(umb_message.payload + 4, "Wilgotnosc          ")) + 4;
 					temp = (sprintf(umb_message.payload + umb_message.payloadLn, "%%              "));
 					umb_message.payloadLn += temp;
 					umb_message.payload[umb_message.payloadLn++] = CURRENT; // current value
 					umb_message.payload[umb_message.payloadLn++] = SIGNED_CHAR;
-					umb_message.payload[umb_message.payloadLn++] = (uint8_t)1;
+					umb_message.payload[umb_message.payloadLn++] = 1;		// minimum
 					umb_message.payload[umb_message.payloadLn++] = 100;
 					break;
 
-				case 300U:
-					umb_message.payload[2] = 0x2C;	// kanal LSB
-					umb_message.payload[3] = 0x01;	// kanal MSB
+				case CH_CURRENT_QFE_FLOAT:
+					umb_message.payload[2] = get_lsb(CH_CURRENT_QFE_FLOAT);	// kanal LSB
+					umb_message.payload[3] = get_msb(CH_CURRENT_QFE_FLOAT);	// kanal MSB
+					umb_message.payloadLn =  (sprintf(umb_message.payload + 4, "Cisnienie QFE       ")) + 4;
+					temp =  (sprintf(umb_message.payload + umb_message.payloadLn, "hPa            "));
+					umb_message.payloadLn += temp;
+					umb_message.payload[umb_message.payloadLn++] = CURRENT; // current value
+					umb_message.payload[umb_message.payloadLn++] = FLOAT;
+					umb_message.payloadLn = umb_insert_float_to_buffer(500.0f, umb_message.payload, umb_message.payloadLn);
+					umb_message.payloadLn = umb_insert_float_to_buffer(1300.0f, umb_message.payload, umb_message.payloadLn);
+					break;
+
+				case CH_CURRENT_QFE_INT:
+					umb_message.payload[2] = get_lsb(CH_CURRENT_QFE_INT);	// kanal LSB
+					umb_message.payload[3] = get_msb(CH_CURRENT_QFE_INT);	// kanal MSB
 					umb_message.payloadLn =  (sprintf(umb_message.payload + 4, "Cisnienie QFE       ")) + 4;
 					temp =  (sprintf(umb_message.payload + umb_message.payloadLn, "hPa            "));
 					umb_message.payloadLn += temp;
 					umb_message.payload[umb_message.payloadLn++] = CURRENT; // current value
 					umb_message.payload[umb_message.payloadLn++] = UNSIGNED_SHORT;
-					umb_message.payload[umb_message.payloadLn++] = 0xF4;
-					umb_message.payload[umb_message.payloadLn++] = 0x01; /// 0x1F4 -> 500d
-					umb_message.payload[umb_message.payloadLn++] = 0x4C;
-					umb_message.payload[umb_message.payloadLn++] = 0x04; /// 0x44C -> 1100d
+					umb_message.payloadLn = umb_insert_sint_to_buffer(500, umb_message.payload, umb_message.payloadLn);
+					umb_message.payloadLn = umb_insert_sint_to_buffer(1300, umb_message.payload, umb_message.payloadLn);
 					break;
 
-				case 305U:
-					umb_message.payload[2] = 0x31;	// kanal LSB
-					umb_message.payload[3] = 0x01;	// kanal LSB
+				case CH_CURRENT_QNH_FLOAT:
+					umb_message.payload[2] = get_lsb(CH_CURRENT_QNH_FLOAT);	// kanal LSB
+					umb_message.payload[3] = get_msb(CH_CURRENT_QNH_FLOAT);;	// kanal LSB
+					umb_message.payloadLn =  (sprintf(umb_message.payload + 4, "Cisnienie QNH       ")) + 4;
+					temp =  (sprintf(umb_message.payload + umb_message.payloadLn, "hPa            "));
+					umb_message.payloadLn += temp;
+					umb_message.payload[umb_message.payloadLn++] = CURRENT; // current value
+					umb_message.payload[umb_message.payloadLn++] = FLOAT;
+					umb_message.payloadLn = umb_insert_float_to_buffer(500.0f, umb_message.payload, umb_message.payloadLn);
+					umb_message.payloadLn = umb_insert_float_to_buffer(1300.0f, umb_message.payload, umb_message.payloadLn);
+					break;
+
+				case CH_CURRENT_QNH_INT:
+					umb_message.payload[2] = get_lsb(CH_CURRENT_QNH_INT);	// kanal LSB
+					umb_message.payload[3] = get_msb(CH_CURRENT_QNH_INT);	// kanal MSB
 					umb_message.payloadLn =  (sprintf(umb_message.payload + 4, "Cisnienie QNH       ")) + 4;
 					temp =  (sprintf(umb_message.payload + umb_message.payloadLn, "hPa            "));
 					umb_message.payloadLn += temp;
 					umb_message.payload[umb_message.payloadLn++] = CURRENT; // current value
 					umb_message.payload[umb_message.payloadLn++] = UNSIGNED_SHORT;
-					umb_message.payload[umb_message.payloadLn++] = 0xF4;
-					umb_message.payload[umb_message.payloadLn++] = 0x01;
-					umb_message.payload[umb_message.payloadLn++] = 0x4C;
-					umb_message.payload[umb_message.payloadLn++] = 0x04;
+					umb_message.payloadLn = umb_insert_sint_to_buffer(500, umb_message.payload, umb_message.payloadLn);
+					umb_message.payloadLn = umb_insert_sint_to_buffer(1300, umb_message.payload, umb_message.payloadLn);
 					break;
 
-				case 460U:
-					umb_message.payload[2] = 0xB8;	// kanal LSB
-					umb_message.payload[3] = 0x01;	// kanal LSB
+				case CH_AVERGE_WIND_MS:
+					umb_message.payload[2] = get_lsb(CH_AVERGE_WIND_MS);	// kanal LSB
+					umb_message.payload[3] = get_msb(CH_AVERGE_WIND_MS);;	// kanal LSB
 					umb_message.payloadLn =  (sprintf(umb_message.payload + 4, "Srednia predkosc    ")) + 4;
-//					umbMessage.payloadLn += temp;
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					temp =  (sprintf(umb_message.payload + umb_message.payloadLn, "m/s            "));
 					umb_message.payloadLn += temp;
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					umb_message.payload[umb_message.payloadLn++] = AVERAGE; // current value
 					umb_message.payload[umb_message.payloadLn++] = FLOAT;
-					umb_message.payload[umb_message.payloadLn++] = 0x00;	// minimum
-					umb_message.payload[umb_message.payloadLn++] = 0x00;
-					umb_message.payload[umb_message.payloadLn++] = 0x00;
-					umb_message.payload[umb_message.payloadLn++] = 0x00;
-					umb_message.payload[umb_message.payloadLn++] = 0x00; // maximum 40.0m/s
-					umb_message.payload[umb_message.payloadLn++] = 0x00; // maximum 40.0m/s
-					umb_message.payload[umb_message.payloadLn++] = 0x20; // maximum 40.0m/s
-					umb_message.payload[umb_message.payloadLn++] = 0x42; // maximum 40.0m/s
+					umb_message.payloadLn = umb_insert_float_to_buffer(0.0f, umb_message.payload, umb_message.payloadLn);
+					umb_message.payloadLn = umb_insert_float_to_buffer(40.0f, umb_message.payload, umb_message.payloadLn);
 					break;
 
-				case 440U:
-					umb_message.payload[2] = 0xCC;	// kanal LSB
-					umb_message.payload[3] = 0x01;	// kanal LSB
+				case CH_MAX_WIND_MS:
+					umb_message.payload[2] = get_lsb(CH_MAX_WIND_MS);	// kanal LSB
+					umb_message.payload[3] = get_msb(CH_MAX_WIND_MS);	// kanal LSB
 					umb_message.payloadLn =  (sprintf(umb_message.payload + 4, "Porywy wiatru       ")) + 4;
-//					umbMessage.payloadLn += temp;
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					temp =  (sprintf(umb_message.payload + umb_message.payloadLn, "m/s            "));
 					umb_message.payloadLn += temp;
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					umb_message.payload[umb_message.payloadLn++] = MAXIMUM; // current value
 					umb_message.payload[umb_message.payloadLn++] = FLOAT;
-					umb_message.payload[umb_message.payloadLn++] = 0x00;	// minimum
-					umb_message.payload[umb_message.payloadLn++] = 0x00;
-					umb_message.payload[umb_message.payloadLn++] = 0x00;
-					umb_message.payload[umb_message.payloadLn++] = 0x00;
-					umb_message.payload[umb_message.payloadLn++] = 0x00; // maximum 40.0m/s
-					umb_message.payload[umb_message.payloadLn++] = 0x00; // maximum 40.0m/s
-					umb_message.payload[umb_message.payloadLn++] = 0x20; // maximum 40.0m/s
-					umb_message.payload[umb_message.payloadLn++] = 0x42; // maximum 40.0m/s
+					umb_message.payloadLn = umb_insert_float_to_buffer(0.0f, umb_message.payload, umb_message.payloadLn);
+					umb_message.payloadLn = umb_insert_float_to_buffer(40.0f, umb_message.payload, umb_message.payloadLn);
 					break;
 
-				case 560U:
-					umb_message.payload[2] = 0x30;	// kanal LSB
-					umb_message.payload[3] = 0x02;	// kanal LSB
+				case CH_AVERAGE_WIND_DIR:
+					umb_message.payload[2] = get_lsb(CH_AVERAGE_WIND_DIR);	// kanal LSB
+					umb_message.payload[3] = get_msb(CH_AVERAGE_WIND_DIR);	// kanal LSB
 					umb_message.payloadLn =  (sprintf(umb_message.payload + 4, "Kierunek wiatru     ")) + 4;
 //					umbMessage.payloadLn += temp;
 //					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
@@ -361,38 +401,28 @@ char umb_callback_device_information_request(void) {
 //					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					umb_message.payload[umb_message.payloadLn++] = VECTOR_AVG; // current value
 					umb_message.payload[umb_message.payloadLn++] = UNSIGNED_SHORT;
-					umb_message.payload[umb_message.payloadLn++] = 0x00;	// minimum
-					umb_message.payload[umb_message.payloadLn++] = 0x00;
-					umb_message.payload[umb_message.payloadLn++] = 0x67;  // maximum 360
-					umb_message.payload[umb_message.payloadLn++] = 0x01;
+					umb_message.payloadLn = umb_insert_sint_to_buffer(0, umb_message.payload, umb_message.payloadLn);
+					umb_message.payloadLn = umb_insert_sint_to_buffer(360, umb_message.payload, umb_message.payloadLn);
 					break;
 
-				case 580U:
+				case CH_AVERAGE_WIND_VCT_DIR:
 					umb_message.payload[2] = 0x44;	// kanal LSB
 					umb_message.payload[3] = 0x02;	// kanal LSB
 					umb_message.payloadLn =  (sprintf(umb_message.payload + 4, "Kierunek wiatru     ")) + 4;
-//					umbMessage.payloadLn += temp;
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					temp =  (sprintf(umb_message.payload + umb_message.payloadLn, "s              "));
 					umb_message.payloadLn += temp;
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					umb_message.payload[umb_message.payloadLn++] = VECTOR_AVG; // current value
 					umb_message.payload[umb_message.payloadLn++] = UNSIGNED_SHORT;
-					umb_message.payload[umb_message.payloadLn++] = 0x00;	// minimum
-					umb_message.payload[umb_message.payloadLn++] = 0x00;
-					umb_message.payload[umb_message.payloadLn++] = 0x67;  // maximum 360
-					umb_message.payload[umb_message.payloadLn++] = 0x01;
+					umb_message.payloadLn = umb_insert_sint_to_buffer(0, umb_message.payload, umb_message.payloadLn);
+					umb_message.payloadLn = umb_insert_sint_to_buffer(360, umb_message.payload, umb_message.payloadLn);
 					break;
 
 					default:
-//						trace_printf("UmbSlave: cmd[DEVICE_INFO] Fail!\n");
-
 						break;
 
 
 
 			}
-			//trace_printf("UmbSlave: cmd[DEVICE_INFO] Complete channel info for number %d ln %d\n", ch, umbMessage.payloadLn);
 			break;
 
 		default:
@@ -402,11 +432,10 @@ char umb_callback_device_information_request(void) {
 	return 0;
 }
 
-char umb_callback_online_data_request(umbMeteoData_t *pMeteo, char status) {
+char umb_callback_online_data_request_0x23(umbMeteoData_t *pMeteo, char status) {
 	uint16_t ch = (umb_message.payload[0] | umb_message.payload[1] << 8);
 	uint8_t ch_lsb = umb_message.payload[0];
 	uint8_t ch_msb = umb_message.payload[1];
-	char ln;
 	umb_clear_message_struct(0);
 	umb_message.cmdId = 0x23;
 	void* val;
@@ -415,52 +444,62 @@ char umb_callback_online_data_request(umbMeteoData_t *pMeteo, char status) {
 	umb_message.payload[1] = ch_lsb;
 	umb_message.payload[2] = ch_msb;
 	switch (ch) { // switch for <value>
-	case 100:
+	case CH_CURRENT_TEMPERATURE_FLOAT:
 		val = &pMeteo->temperature; break;
-	case 101:
+	case CH_CURRENT_TEMPERATURE_INT:
 		val = &pMeteo->fTemperature; break;
-	case 200:
+	case CH_CURRENT_HUMIDITY:
 		val = &pMeteo->humidity; break;
-	case 300:
+	case CH_CURRENT_QFE_FLOAT:
 		val = &pMeteo->qfe; break;
-	case 350:
+	case CH_CURRENT_QNH_FLOAT:
 		val = &pMeteo->qnh; break;
-	case 440:
+	case CH_MAX_WIND_MS:
 		val = &pMeteo->windgusts; break;
-	case 460:
+	case CH_AVERGE_WIND_MS:
 		val = &pMeteo->windspeed; break;
-	case 560:
+	case CH_AVERAGE_WIND_DIR:
 		val = &pMeteo->winddirection; break;
-	case 580:
+	case CH_AVERAGE_WIND_VCT_DIR:
 		val = &pMeteo->winddirection; break;
+	case CH_CURRENT_QFE_INT:
+		val = &pMeteo->sqfe; break;
+	case CH_CURRENT_QNH_INT:
+		val = &pMeteo->sqfe; break;
 	default: return -1;
 
 	}
 	switch (ch) {	// switch for <type>
-		case 100:
-		case 200:
+		case CH_CURRENT_HUMIDITY:
 			umb_message.payload[3] = SIGNED_CHAR;
-			umb_message.payload[4] = *(char*)val;
+			umb_message.payload[4] = *(int8_t*)val;
 			umb_message.payloadLn = 5;
 			break;
-		case 101:
-		case 440:
-		case 460:
+		case CH_CURRENT_QFE_FLOAT:
+		case CH_CURRENT_QNH_FLOAT:
+		case CH_CURRENT_TEMPERATURE_FLOAT:
+		case CH_MAX_WIND_MS:
+		case CH_AVERGE_WIND_MS:
 			umb_message.payload[3] = FLOAT;
-			umb_message.payload[4] = *(int*)val & 0xFF;
-			umb_message.payload[5] = (*(int*)val & 0xFF00) >> 8;
-			umb_message.payload[6] = (*(int*)val & 0xFF0000) >> 16;
-			umb_message.payload[7] = (*(int*)val & 0xFF000000) >> 24;
+			umb_message.payload[4] = *(int32_t*)val & 0xFF;
+			umb_message.payload[5] = (*(int32_t*)val & 0xFF00) >> 8;
+			umb_message.payload[6] = (*(int32_t*)val & 0xFF0000) >> 16;
+			umb_message.payload[7] = (*(int32_t*)val & 0xFF000000) >> 24;
 			umb_message.payloadLn = 8;
 			break;
-		case 300:
-		case 350:
-		case 560:
-		case 580:
+		case CH_AVERAGE_WIND_DIR:
+		case CH_AVERAGE_WIND_VCT_DIR:
+		case CH_CURRENT_QFE_INT:
+		case CH_CURRENT_QNH_INT:
 			umb_message.payload[3] = UNSIGNED_SHORT;
-			umb_message.payload[4] = *(unsigned short*)val & 0xFF;
-			umb_message.payload[5] = (*(unsigned short*)val & 0xFF00) >> 8;
+			umb_message.payload[4] = *(uint16_t*)val & 0xFF;
+			umb_message.payload[5] = (*(uint16_t*)val & 0xFF00) >> 8;
 			umb_message.payloadLn = 6;
+			break;
+		case CH_CURRENT_TEMPERATURE_INT:
+			umb_message.payload[3] = UNSIGNED_CHAR;
+			umb_message.payload[4] = *(uint8_t*)val & 0xFF;
+			umb_message.payloadLn = 5;
 			break;
 
 	default: return -1;
@@ -469,7 +508,7 @@ char umb_callback_online_data_request(umbMeteoData_t *pMeteo, char status) {
 	return 0;
 }
 
-char umb_callback_multi_online_data_request(umbMeteoData_t *pMeteo, char status) {
+char umb_callback_multi_online_data_request_0x2f(umbMeteoData_t *pMeteo, char status) {
 	uint8_t chann = umb_message.payload[0];
 	uint16_t channels[4] = {0, 0, 0, 0};
 	uint8_t j = 0;
@@ -497,60 +536,64 @@ char umb_callback_multi_online_data_request(umbMeteoData_t *pMeteo, char status)
 	for (int i = 0; i < chann; i++)
 	{
 		switch (channels[i]) { // switch for <value>
-		case 100:
+		case CH_CURRENT_TEMPERATURE_FLOAT:
 			val = &pMeteo->temperature; break;
-		case 200:
+		case CH_CURRENT_TEMPERATURE_INT:
+			val = &pMeteo->fTemperature; break;
+		case CH_CURRENT_HUMIDITY:
 			val = &pMeteo->humidity; break;
-		case 300:
+		case CH_CURRENT_QFE_FLOAT:
 			val = &pMeteo->qfe; break;
-		case 350:
+		case CH_CURRENT_QNH_FLOAT:
 			val = &pMeteo->qnh; break;
-		case 440:
+		case CH_MAX_WIND_MS:
 			val = &pMeteo->windgusts; break;
-		case 460:
+		case CH_AVERGE_WIND_MS:
 			val = &pMeteo->windspeed; break;
-		case 560:
+		case CH_AVERAGE_WIND_DIR:
 			val = &pMeteo->winddirection; break;
-		case 580:
+		case CH_AVERAGE_WIND_VCT_DIR:
 			val = &pMeteo->winddirection; break;
+		case CH_CURRENT_QFE_INT:
+			val = &pMeteo->sqfe; break;
+		case CH_CURRENT_QNH_INT:
+			val = &pMeteo->sqfe; break;
 		default: return -1;
 
 		}
 		switch (channels[i]) {	// switch for <type>
-			case 100:
-			case 200:
-				umb_message.payload[2 + j++] = 5;			// subtelegram lenght
-				umb_message.payload[2 + j++] = 0;	// substatus
-				umb_message.payload[2 + j++] = channels[i] & 0xFF;
-				umb_message.payload[2 + j++] = (channels[i] >> 8) & 0xFF;
-				umb_message.payload[2 + j++] = SIGNED_CHAR;
-				umb_message.payload[2 + j++] = *(char*)val;
-				break;
-			case 440:
-			case 460:
-				umb_message.payload[2 + j++] = 8;			// subtelegram lenght
-				umb_message.payload[2 + j++] = 0;	// substatus
-				umb_message.payload[2 + j++] = channels[i] & 0xFF;
-				umb_message.payload[2 + j++] = (channels[i] >> 8) & 0xFF;
-				umb_message.payload[2 + j++] = FLOAT;
-				umb_message.payload[2 + j++] = *(int*)val & 0xFF;
-				umb_message.payload[2 + j++] = (*(int*)val & 0xFF00) >> 8;
-				umb_message.payload[2 + j++] = (*(int*)val & 0xFF0000) >> 16;
-				umb_message.payload[2 + j++] = (*(int*)val & 0xFF000000) >> 24;
+		case CH_CURRENT_HUMIDITY:
+			umb_message.payload[3] = SIGNED_CHAR;
+			umb_message.payload[4] = *(int8_t*)val;
+			umb_message.payloadLn = 5;
+			break;
+		case CH_CURRENT_QFE_FLOAT:
+		case CH_CURRENT_QNH_FLOAT:
+		case CH_CURRENT_TEMPERATURE_FLOAT:
+		case CH_MAX_WIND_MS:
+		case CH_AVERGE_WIND_MS:
+			umb_message.payload[3] = FLOAT;
+			umb_message.payload[4] = *(int32_t*)val & 0xFF;
+			umb_message.payload[5] = (*(int32_t*)val & 0xFF00) >> 8;
+			umb_message.payload[6] = (*(int32_t*)val & 0xFF0000) >> 16;
+			umb_message.payload[7] = (*(int32_t*)val & 0xFF000000) >> 24;
+			umb_message.payloadLn = 8;
+			break;
+		case CH_AVERAGE_WIND_DIR:
+		case CH_AVERAGE_WIND_VCT_DIR:
+		case CH_CURRENT_QFE_INT:
+		case CH_CURRENT_QNH_INT:
+			umb_message.payload[3] = UNSIGNED_SHORT;
+			umb_message.payload[4] = *(uint16_t*)val & 0xFF;
+			umb_message.payload[5] = (*(uint16_t*)val & 0xFF00) >> 8;
+			umb_message.payloadLn = 6;
+			break;
+		case CH_CURRENT_TEMPERATURE_INT:
+			umb_message.payload[3] = UNSIGNED_CHAR;
+			umb_message.payload[4] = *(uint8_t*)val & 0xFF;
+			umb_message.payloadLn = 5;
+			break;
 
-				break;
-			case 300:
-			case 305:
-			case 560:
-			case 580:
-				umb_message.payload[2 + j++] = 6;			// subtelegram lenght
-				umb_message.payload[2 + j++] = 0;	// substatus
-				umb_message.payload[2 + j++] = channels[i] & 0xFF;
-				umb_message.payload[2 + j++] = (channels[i] >> 8) & 0xFF;
-				umb_message.payload[2 + j++] = UNSIGNED_SHORT;
-				umb_message.payload[2 + j++] = *(unsigned short*)val & 0xFF;
-				umb_message.payload[2 + j++] = (*(unsigned short*)val & 0xFF00) >> 8;
-				break;
 
 		default: return -1;
 		}
@@ -619,4 +662,45 @@ unsigned short calc_crc(unsigned short crc_buff, unsigned char input) {
 		input = input >> 1;
 	}
 	return (crc_buff);
+}
+
+uint8_t umb_insert_float_to_buffer(float value, uint8_t* output,
+		uint8_t output_ptr) {
+
+	uint8_t ptr = output_ptr;
+	uint32_t val = *((uint32_t*)&value);
+
+	*(output+ (ptr++)) = (uint8_t)( val & 0xFF);
+	*(output+ (ptr++)) = (uint8_t)((val & 0xFF00) >> 8);
+	*(output+ (ptr++)) = (uint8_t)((val & 0xFF0000) >> 16);
+	*(output+ (ptr++)) = (uint8_t)((val & 0xFF000000) >> 24);
+
+	return ptr;
+}
+
+uint8_t umb_insert_int_to_buffer(int32_t value, uint8_t* output,
+		uint8_t output_ptr) {
+
+	uint8_t ptr = output_ptr;
+	uint32_t val = (uint32_t)value;
+
+	*(output+ (ptr++)) = (uint8_t)( val & 0xFF);
+	*(output+ (ptr++)) = (uint8_t)((val & 0xFF00) >> 8);
+	*(output+ (ptr++)) = (uint8_t)((val & 0xFF0000) >> 16);
+	*(output+ (ptr++)) = (uint8_t)((val & 0xFF000000) >> 24);
+
+	return ptr;
+}
+
+uint8_t umb_insert_sint_to_buffer(int16_t value, uint8_t* output,
+		uint8_t output_ptr) {
+
+	uint8_t ptr = output_ptr;
+	uint16_t val = (uint16_t)value;
+
+	*(output+ (ptr++)) = (uint8_t)( val & 0xFF);
+	*(output+ (ptr++)) = (uint8_t)((val & 0xFF00) >> 8);
+
+	return ptr;
+
 }

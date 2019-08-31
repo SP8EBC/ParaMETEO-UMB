@@ -5,6 +5,7 @@
 #include "drivers/_dht22.h"
 #include "drivers/dallas.h"
 #include "drivers/ms5611.h"
+#include "drivers/umb-slave.h"
 
 extern float rte_wx_temperature_dallas, rte_wx_temperature_dallas_valid;
 extern float rte_wx_temperature, rte_wx_temperature_valid;
