@@ -46,8 +46,8 @@ umbMessage_t umb_message;
 
 uint8_t umb_slave_state = 0;
 
-static uint8_t umbMasterClass = 0;
-static uint8_t umbMasterId = 0;
+static uint8_t umb_master_class = 0;
+static uint8_t umb_master_id = 0;
 
 volatile int ii = 0;
 
@@ -56,8 +56,8 @@ char umb_slave_listen() {
 		srl_receive_data(8, SOH, 0x00, 0, 6, 12);
 		umb_clear_message_struct(0);
 		umb_slave_state = 1;
-		umbMasterClass = 0;
-		umbMasterId = 0;
+		umb_master_class = 0;
+		umb_master_id = 0;
 		memset(umb_message.payload, 0x00, MESSAGE_PAYLOAD_MAX);
 		umb_message.cmdId = 0;
 	}
@@ -260,10 +260,8 @@ char umb_callback_device_information_request(void) {
 					umb_message.payload[2] = 0x64;	// kanal LSB
 					umb_message.payload[3] = 0x00;	// kanal LSB
 					umb_message.payloadLn =  (sprintf(umb_message.payload + 4, "Temperatura         ")) + 4; // 20
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					temp = sprintf(umb_message.payload + umb_message.payloadLn, "StopnieC       "); // 15
 					umb_message.payloadLn += temp;
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					umb_message.payload[umb_message.payloadLn++] = CURRENT; // current value
 					umb_message.payload[umb_message.payloadLn++] = SIGNED_CHAR;
 					umb_message.payload[umb_message.payloadLn++] = (uint8_t)-127;
@@ -274,11 +272,8 @@ char umb_callback_device_information_request(void) {
 					umb_message.payload[2] = 0xC8;	// kanal LSB
 					umb_message.payload[3] = 0x00;	// kanal LSB
 					umb_message.payloadLn = (sprintf(umb_message.payload + 4, "Wilgotnosc          ")) + 4;
-//					umbMessage.payloadLn += temp;
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					temp = (sprintf(umb_message.payload + umb_message.payloadLn, "%%              "));
 					umb_message.payloadLn += temp;
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					umb_message.payload[umb_message.payloadLn++] = CURRENT; // current value
 					umb_message.payload[umb_message.payloadLn++] = SIGNED_CHAR;
 					umb_message.payload[umb_message.payloadLn++] = (uint8_t)1;
@@ -289,11 +284,8 @@ char umb_callback_device_information_request(void) {
 					umb_message.payload[2] = 0x2C;	// kanal LSB
 					umb_message.payload[3] = 0x01;	// kanal MSB
 					umb_message.payloadLn =  (sprintf(umb_message.payload + 4, "Cisnienie QFE       ")) + 4;
-					//umbMessage.payloadLn += temp;
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					temp =  (sprintf(umb_message.payload + umb_message.payloadLn, "hPa            "));
 					umb_message.payloadLn += temp;
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					umb_message.payload[umb_message.payloadLn++] = CURRENT; // current value
 					umb_message.payload[umb_message.payloadLn++] = UNSIGNED_SHORT;
 					umb_message.payload[umb_message.payloadLn++] = 0xF4;
@@ -306,11 +298,8 @@ char umb_callback_device_information_request(void) {
 					umb_message.payload[2] = 0x31;	// kanal LSB
 					umb_message.payload[3] = 0x01;	// kanal LSB
 					umb_message.payloadLn =  (sprintf(umb_message.payload + 4, "Cisnienie QNH       ")) + 4;
-//					umbMessage.payloadLn += temp;
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					temp =  (sprintf(umb_message.payload + umb_message.payloadLn, "hPa            "));
 					umb_message.payloadLn += temp;
-//					umbMessage.payload[umbMessage.payloadLn++] = 0x00;
 					umb_message.payload[umb_message.payloadLn++] = CURRENT; // current value
 					umb_message.payload[umb_message.payloadLn++] = UNSIGNED_SHORT;
 					umb_message.payload[umb_message.payloadLn++] = 0xF4;

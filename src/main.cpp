@@ -38,9 +38,6 @@
 
 //#define _KOZIA_GORA
 
-dht22Values dht, dht_valid;
-
-umbMeteoData_t u;
 
 volatile int i = 0;
 
@@ -71,13 +68,13 @@ main(int argc, char* argv[])
 				  RCC_APB2ENR_AFIOEN |
 				  RCC_APB2ENR_TIM1EN);
 
-  u.humidity = 0;
-  u.qfe = 0;
-  u.qnh = 0;
-  u.temperature = 0;
-  u.winddirection = 0;
-  u.windgusts = 0.0f;
-  u.windspeed = 0.0f;
+  rte_wx_umb.humidity = 0;
+  rte_wx_umb.qfe = 0;
+  rte_wx_umb.qnh = 0;
+  rte_wx_umb.temperature = 0;
+  rte_wx_umb.winddirection = 0;
+  rte_wx_umb.windgusts = 0.0f;
+  rte_wx_umb.windspeed = 0.0f;
 
   NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
 
@@ -96,22 +93,35 @@ main(int argc, char* argv[])
 //  IWDG_Enable();
 //  IWDG_ReloadCounter();
 
-
+  // Configuting LEDs
   LedConfig();
+
+  // Configuring timers for Dallas OneWire delay & WX measurements starting
   TimerConfig();
 
 #ifndef _KOZIA_GORA
 	#ifndef _DALLAS_SPLIT_PIN
 	  dallas_init(GPIOC, GPIO_Pin_6, GPIO_PinSource6);
 	#else
+	  // If split - ping OneWire is enabled to work with opto separation.
+	  // Pin defined here is an output. Next pin in the same port is an input
 	  dallas_init(GPIOB, GPIO_Pin_5, GPIO_PinSource5);
 	#endif
 #else
+	  // SR9WXS specific configuration
   dallas_init(GPIOC, GPIO_Pin_7, GPIO_PinSource7);
 #endif
+
+  // Initializing UART
   srl_init();
+
+  // Initializing TX20 anemometer driver
   TX20Init();
+
+  // Initializing i2c driver
   i2cConfigure();
+
+  // Initializing dht22 humidity sensor
   dht22_init();
 
   ms5611_reset(&rte_wx_ms5611_qf);
@@ -136,13 +146,13 @@ main(int argc, char* argv[])
 
 		switch (dht22State) {
 			case DHT22_STATE_IDLE:
-				dht22_comm(&dht);
+				dht22_comm(&rte_wx_dht);
 				break;
 			case DHT22_STATE_DATA_RDY:
-				dht22_decode(&dht);
+				dht22_decode(&rte_wx_dht);
 				break;
 			case DHT22_STATE_DATA_DECD:
-				dht_valid = dht;			// powrot do stanu DHT22_STATE_IDLE jest w TIM3_IRQHandler
+				rte_wx_dht_valid = rte_wx_dht;			// powrot do stanu DHT22_STATE_IDLE jest w TIM3_IRQHandler
 				dht22State = DHT22_STATE_DONE;
 				break;
 			default: break;
@@ -170,20 +180,20 @@ main(int argc, char* argv[])
 				  break;
 			  case 0x23:
 //				  UmbClearMessageStruct(0);
-				  u.humidity = (char)dht_valid.humidity;
-				  u.fTemperature = rte_wx_temperature_dallas_valid;
-				  u.temperature = (char)rte_wx_temperature_dallas_valid;
-				  u.qfe = rte_wx_pressure_valid;
-				  u.qnh = CalcQNHFromQFE(rte_wx_pressure_valid, 674, rte_wx_temperature_dallas_valid);
-				  u.winddirection = TX20.HistoryAVG[0].WindDirX;
-				  u.windspeed = TX20.HistoryAVG[0].WindSpeed;
-				  u.windgusts = TX20FindMaxSpeed();
-				  umb_callback_online_data_request(&u, 0);
+				  rte_wx_umb.humidity = (char)rte_wx_dht_valid.humidity;
+				  rte_wx_umb.fTemperature = rte_wx_temperature_dallas_valid;
+				  rte_wx_umb.temperature = (char)rte_wx_temperature_dallas_valid;
+				  rte_wx_umb.qfe = rte_wx_pressure_valid;
+				  rte_wx_umb.qnh = CalcQNHFromQFE(rte_wx_pressure_valid, 674, rte_wx_temperature_dallas_valid);
+				  rte_wx_umb.winddirection = TX20.HistoryAVG[0].WindDirX;
+				  rte_wx_umb.windspeed = TX20.HistoryAVG[0].WindSpeed;
+				  rte_wx_umb.windgusts = TX20FindMaxSpeed();
+				  umb_callback_online_data_request(&rte_wx_umb, 0);
 				  srl_start_tx(umb_prepare_frame_to_send(&umb_message, srl_tx_buffer));
 				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  case 0x2F:
-				  umb_callback_multi_online_data_request(&u, 0);
+				  umb_callback_multi_online_data_request(&umb_message, 0);
 				  srl_start_tx(umb_prepare_frame_to_send(&umb_message, srl_tx_buffer));
 				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;

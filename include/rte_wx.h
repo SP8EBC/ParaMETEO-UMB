@@ -17,4 +17,6 @@ extern dht22Values rte_wx_dht, rte_wx_dht_valid;
 extern DallasQF rte_wx_current_dallas_qf, rte_wx_error_dallas_qf;
 extern ms5611_qf_t rte_wx_ms5611_qf;
 
+extern umbMeteoData_t rte_wx_umb;
+
 #endif
