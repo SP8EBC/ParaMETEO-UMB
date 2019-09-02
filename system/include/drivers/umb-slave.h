@@ -59,6 +59,7 @@ short umb_prepare_frame_to_send(umbMessage_t* pMessage, uint8_t* pUsartBuffer);
 uint8_t umb_insert_float_to_buffer(float value, uint8_t* output, uint8_t output_ptr);
 uint8_t umb_insert_int_to_buffer(int32_t value, uint8_t* output, uint8_t output_ptr);
 uint8_t umb_insert_sint_to_buffer(int16_t value, uint8_t* output, uint8_t output_ptr);
+uint8_t umb_insert_byte_to_buffer(int8_t value, uint8_t* output, uint8_t output_ptr);
 
 unsigned short calc_crc(unsigned short crc_buff, unsigned char input);
 

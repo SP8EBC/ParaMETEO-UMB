@@ -5,10 +5,10 @@
  *      Author: mateusz
  */
 
+#include <rte_umb.h>
 #include <string.h>
 #include "drivers/umb-slave.h"
 #include "drivers/serial.h"
-
 #include <stdint.h>
 #include <stdio.h>
 
@@ -110,17 +110,18 @@ char umb_slave_pooling() {
 				umb_message.payloadLn = ln - 2;
 				umb_message.checksum = crc;
 
+				rte_umb_correct_messages++;
 				umb_slave_state = UMB_STATE_MESSAGE_RXED;
 			}
 			else {
-//				trace_printf("UmbSlave: Wrong CRC in data %d bytes long with cmdId 0x%02x\n", ln, srlRXData[8]);
-//				trace_printf("UmbSlave: CRC should be 0x%04X but was 0x%04X\n", crc, (srlRXData[9 + ln] | srlRXData[10 + ln] << 8) );
+				rte_umb_wrong_crc++;
 				umb_slave_state = UMB_STATE_MESSAGE_RXED_WRONG_CRC;
 				}
 			}
 		else {
 			// jeżeli nie jest zaadresowana to zignoruj i słuchaj dalej
 //			trace_printf("UmbSlave: Data addressed not to this device\n"), UmbSlaveListen();
+			rte_umb_not_addresed++;
 			for (ii = 0; ii <= 0x2FFFF; ii++);
 			umb_slave_listen();
 		}
@@ -301,7 +302,7 @@ char umb_callback_device_information_0x2d(void) {
 					temp = sprintf(umb_message.payload + umb_message.payloadLn, "StopnieC       "); // 15
 					umb_message.payloadLn += temp;
 					umb_message.payload[umb_message.payloadLn++] = CURRENT; // current value
-					umb_message.payload[umb_message.payloadLn++] = UNSIGNED_CHAR;
+					umb_message.payload[umb_message.payloadLn++] = SIGNED_CHAR;
 					umb_message.payload[umb_message.payloadLn++] = (uint8_t)-127;		// minimum
 					umb_message.payload[umb_message.payloadLn++] = 127;
 					break;
@@ -682,7 +683,7 @@ uint8_t umb_insert_int_to_buffer(int32_t value, uint8_t* output,
 		uint8_t output_ptr) {
 
 	uint8_t ptr = output_ptr;
-	uint32_t val = (uint32_t)value;
+	uint32_t val = *(uint32_t*)&value;
 
 	*(output+ (ptr++)) = (uint8_t)( val & 0xFF);
 	*(output+ (ptr++)) = (uint8_t)((val & 0xFF00) >> 8);
@@ -696,11 +697,19 @@ uint8_t umb_insert_sint_to_buffer(int16_t value, uint8_t* output,
 		uint8_t output_ptr) {
 
 	uint8_t ptr = output_ptr;
-	uint16_t val = (uint16_t)value;
+	uint16_t val = *(uint16_t*)&value;
 
 	*(output+ (ptr++)) = (uint8_t)( val & 0xFF);
 	*(output+ (ptr++)) = (uint8_t)((val & 0xFF00) >> 8);
 
 	return ptr;
+
+}
+
+uint8_t umb_insert_byte_to_buffer(int8_t value, uint8_t* output,
+		uint8_t output_ptr) {
+
+	uint8_t ptr = output_ptr;
+	uint8_t val = *(uint8_t*)&value;
 
 }

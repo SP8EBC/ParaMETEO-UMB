@@ -32,6 +32,7 @@
 
 #include "rte_main.h"
 #include "rte_wx.h"
+#include "rte_umb.h"
 
 #include "wx_handler.h"
 
@@ -201,6 +202,7 @@ main(int argc, char* argv[])
 				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  default:
+				  rte_umb_wrong_service++;
 				  umb_clear_message_struct(0);
 				  umb_slave_listen();
 				  break;
