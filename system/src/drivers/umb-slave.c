@@ -11,9 +11,8 @@
 #include "drivers/serial.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <umb-slave-config.h>
 
-#define DEV_CLASS (uint8_t)(0x0C << 4)
-#define DEV_ID (uint8_t)2
 
 #define DEV_NAME "ParaMETEO"
 
@@ -42,20 +41,9 @@
 #define SUM 0x14
 #define VECTOR_AVG 0x15
 
-// 3.9.8 Channel Assignment Device Class 7 Compact Weather Station
-#define CH_CURRENT_TEMPERATURE_FLOAT 	100U
-#define CH_CURRENT_TEMPERATURE_INT		101U
-#define CH_CURRENT_HUMIDITY				200U
-#define CH_CURRENT_QFE_FLOAT			300U
-#define CH_CURRENT_QFE_INT				301U
-#define CH_CURRENT_QNH_FLOAT			305U
-#define CH_CURRENT_QNH_INT				306U
-#define CH_AVERGE_WIND_MS				460U
-#define CH_MAX_WIND_MS					440U
-#define CH_AVERAGE_WIND_DIR				560U //580
-#define CH_AVERAGE_WIND_VCT_DIR			580U
-
-#define CH_CHANNEL_CNT					11
+#define FLOAT_SUBLEN	8
+#define SINT_SUBLEN		6
+#define BYTE_SUBLEN		5
 
 #define get_lsb(x) ((uint8_t)(x & 0xFF))
 #define get_msb(x) ((uint8_t)((x & 0xFF00) >> 8))
@@ -510,7 +498,10 @@ char umb_callback_online_data_request_0x23(umbMeteoData_t *pMeteo, char status) 
 }
 
 char umb_callback_multi_online_data_request_0x2f(umbMeteoData_t *pMeteo, char status) {
+	// The UMB Config Tool uses this service to query for measuremenets even if only one value
+	// is monitored
 	uint8_t chann = umb_message.payload[0];
+	uint8_t total_payload_len = 0;
 	uint16_t channels[4] = {0, 0, 0, 0};
 	uint8_t j = 0;
 	void* val;
@@ -523,6 +514,7 @@ char umb_callback_multi_online_data_request_0x2f(umbMeteoData_t *pMeteo, char st
 
 	for (int i = 0; i < chann; i++)
 	{
+		// rewriting channels requested by the tester
 		channels[i] = (umb_message.payload[j+1] | umb_message.payload[j+2] << 8);
 		j += 2;
 	}
@@ -533,13 +525,15 @@ char umb_callback_multi_online_data_request_0x2f(umbMeteoData_t *pMeteo, char st
 	umb_message.cmdId = 0x2F;
 	umb_message.payload[0] = status;
 	umb_message.payload[1] = chann;
+	umb_message.payloadLn = 2;
+	total_payload_len = 2;
 
 	for (int i = 0; i < chann; i++)
 	{
 		switch (channels[i]) { // switch for <value>
-		case CH_CURRENT_TEMPERATURE_FLOAT:
-			val = &pMeteo->temperature; break;
 		case CH_CURRENT_TEMPERATURE_INT:
+			val = &pMeteo->temperature; break;
+		case CH_CURRENT_TEMPERATURE_FLOAT:
 			val = &pMeteo->fTemperature; break;
 		case CH_CURRENT_HUMIDITY:
 			val = &pMeteo->humidity; break;
@@ -562,37 +556,42 @@ char umb_callback_multi_online_data_request_0x2f(umbMeteoData_t *pMeteo, char st
 		default: return -1;
 
 		}
+
 		switch (channels[i]) {	// switch for <type>
 		case CH_CURRENT_HUMIDITY:
-			umb_message.payload[3] = SIGNED_CHAR;
-			umb_message.payload[4] = *(int8_t*)val;
-			umb_message.payloadLn = 5;
+			total_payload_len = umb_insert_byte_to_buffer(BYTE_SUBLEN, umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_byte_to_buffer(0x00, umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_sint_to_buffer(channels[i], umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_byte_to_buffer(SIGNED_CHAR, umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_byte_to_buffer(*(int8_t*)val, umb_message.payload, total_payload_len);
 			break;
 		case CH_CURRENT_QFE_FLOAT:
 		case CH_CURRENT_QNH_FLOAT:
 		case CH_CURRENT_TEMPERATURE_FLOAT:
 		case CH_MAX_WIND_MS:
 		case CH_AVERGE_WIND_MS:
-			umb_message.payload[3] = FLOAT;
-			umb_message.payload[4] = *(int32_t*)val & 0xFF;
-			umb_message.payload[5] = (*(int32_t*)val & 0xFF00) >> 8;
-			umb_message.payload[6] = (*(int32_t*)val & 0xFF0000) >> 16;
-			umb_message.payload[7] = (*(int32_t*)val & 0xFF000000) >> 24;
-			umb_message.payloadLn = 8;
+			total_payload_len = umb_insert_byte_to_buffer(FLOAT_SUBLEN, umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_byte_to_buffer(0x00, umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_sint_to_buffer(channels[i], umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_byte_to_buffer(FLOAT, umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_float_to_buffer(*(float*)val, umb_message.payload, total_payload_len);
 			break;
 		case CH_AVERAGE_WIND_DIR:
 		case CH_AVERAGE_WIND_VCT_DIR:
 		case CH_CURRENT_QFE_INT:
 		case CH_CURRENT_QNH_INT:
-			umb_message.payload[3] = UNSIGNED_SHORT;
-			umb_message.payload[4] = *(uint16_t*)val & 0xFF;
-			umb_message.payload[5] = (*(uint16_t*)val & 0xFF00) >> 8;
-			umb_message.payloadLn = 6;
+			total_payload_len = umb_insert_byte_to_buffer(SINT_SUBLEN, umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_byte_to_buffer(0x00, umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_sint_to_buffer(channels[i], umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_byte_to_buffer(UNSIGNED_SHORT, umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_sint_to_buffer(*(int16_t*)val, umb_message.payload, total_payload_len);
 			break;
 		case CH_CURRENT_TEMPERATURE_INT:
-			umb_message.payload[3] = UNSIGNED_CHAR;
-			umb_message.payload[4] = *(uint8_t*)val & 0xFF;
-			umb_message.payloadLn = 5;
+			total_payload_len = umb_insert_byte_to_buffer(BYTE_SUBLEN, umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_byte_to_buffer(0x00, umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_sint_to_buffer(channels[i], umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_byte_to_buffer(SIGNED_CHAR, umb_message.payload, total_payload_len);
+			total_payload_len = umb_insert_byte_to_buffer(*(int8_t*)val, umb_message.payload, total_payload_len);
 			break;
 
 
@@ -600,7 +599,7 @@ char umb_callback_multi_online_data_request_0x2f(umbMeteoData_t *pMeteo, char st
 		}
 
 	}
-	umb_message.payloadLn = 2 + j;
+	umb_message.payloadLn = total_payload_len;
 	return 0;
 
 
@@ -711,5 +710,9 @@ uint8_t umb_insert_byte_to_buffer(int8_t value, uint8_t* output,
 
 	uint8_t ptr = output_ptr;
 	uint8_t val = *(uint8_t*)&value;
+
+	*(output+ (ptr++)) = val;
+
+	return ptr;
 
 }
