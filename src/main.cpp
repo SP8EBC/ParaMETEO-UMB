@@ -181,7 +181,6 @@ main(int argc, char* argv[])
 				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  case 0x23:
-//				  UmbClearMessageStruct(0);
 				  rte_wx_umb.humidity = (char)rte_wx_dht_valid.humidity;
 				  rte_wx_umb.fTemperature = rte_wx_temperature_dallas_valid;
 				  rte_wx_umb.temperature = (char)rte_wx_temperature_dallas_valid;

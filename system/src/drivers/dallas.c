@@ -66,9 +66,8 @@ void dallas_init(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, uint16_t GPIO_PinSource
 
 void dallas_config_timer(void) {
 	// Disabling any time-consuming iterrupts
-	//NVIC_DisableIRQ( TIM3_IRQn );			// data transmission initializer
 	NVIC_DisableIRQ( TIM4_IRQn );			// data transmission initializer
-	NVIC_DisableIRQ( TIM7_IRQn );			// data transmission initializer
+	NVIC_DisableIRQ( TIM3_IRQn );			// data transmission initializer
 	NVIC_DisableIRQ( 25 );	// anemometer
 
 	NVIC_SetPriority(TIM2_IRQn, 1);
@@ -87,18 +86,8 @@ void dallas_deconfig_timer(void) {
 
 	//NVIC_EnableIRQ( TIM3_IRQn );	// adc
 	NVIC_EnableIRQ( TIM4_IRQn );	// data transmission initializer
-	NVIC_EnableIRQ( TIM7_IRQn );	// data transmission initializer
+	NVIC_EnableIRQ( TIM3_IRQn );	// data transmission initializer
 	NVIC_EnableIRQ( 25 ); // anemometer
-
-	// reverting back to APRS timings
-	//NVIC_SetPriority(TIM4_IRQn, 1);
-	//TIM4->PSC = 0;
-	//TIM4->ARR = 2499;
-	//TIM4->CR1 |= TIM_CR1_DIR;
-	//TIM4->CR1 &= (0xFFFFFFFF ^ TIM_CR1_DIR);
-	//TIM4->DIER |= 1;
-//	NVIC_EnableIRQ( TIM4_IRQn );
-	//timm = 0;
 }
 
 char dallas_reset(void) {
