@@ -15,6 +15,7 @@ extern "C" {
 
 void wx_get_all_measurements(void);
 void wx_pool_dht22(void);
+void wx_copy_to_rte_meteodata(void);
 
 /* C++ detection */
 #ifdef __cplusplus

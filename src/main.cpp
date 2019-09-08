@@ -107,7 +107,7 @@ main(int argc, char* argv[])
 	#else
 	  // If split - ping OneWire is enabled to work with opto separation.
 	  // Pin defined here is an output. Next pin in the same port is an input
-	  dallas_init(GPIOB, GPIO_Pin_5, GPIO_PinSource5);
+	  dallas_init(GPIOC, GPIO_Pin_11, GPIO_PinSource11);
 	#endif
 #else
 	  // SR9WXS specific configuration
@@ -181,6 +181,7 @@ main(int argc, char* argv[])
 				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  case 0x23:
+				  /*
 				  rte_wx_umb.humidity = (char)rte_wx_dht_valid.humidity;
 				  rte_wx_umb.fTemperature = rte_wx_temperature_dallas_valid;
 				  rte_wx_umb.temperature = (char)rte_wx_temperature_dallas_valid;
@@ -191,11 +192,14 @@ main(int argc, char* argv[])
 				  rte_wx_umb.winddirection = TX20.HistoryAVG[0].WindDirX;
 				  rte_wx_umb.windspeed = TX20.HistoryAVG[0].WindSpeed;
 				  rte_wx_umb.windgusts = TX20FindMaxSpeed();
+				  */
+				  wx_copy_to_rte_meteodata();
 				  umb_callback_online_data_request_0x23(&rte_wx_umb, 0);
 				  srl_start_tx(umb_prepare_frame_to_send(&umb_message, srl_tx_buffer));
 				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  case 0x2F:
+				  wx_copy_to_rte_meteodata();
 				  umb_callback_multi_online_data_request_0x2f(&rte_wx_umb, 0);
 				  srl_start_tx(umb_prepare_frame_to_send(&umb_message, srl_tx_buffer));
 				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
