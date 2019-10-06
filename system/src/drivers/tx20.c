@@ -127,7 +127,7 @@ float TX20DataAverage(void) {
 	x = (short)(100.0f * cosf((float)VNAME.Data.WindDirX * PI/180.0f));
 	y = (short)(100.0f * sinf((float)VNAME.Data.WindDirX * PI/180.0f));
 
-	if (abs((int32_t)(VNAME.HistoryAVG[MC].WindSpeed - VNAME.Data.WindSpeed)) > 5) {
+	if (abs((int32_t)(VNAME.HistoryAVG[MC].WindSpeed - VNAME.Data.WindSpeed)) > TX20_MAX_SLEW_RATE) {
 		rte_wx_tx20_excessive_slew_rate = 1;
 		return 0;
 	}
@@ -185,12 +185,6 @@ void TX20DataParse(void) {
 	if (VNAME.Data.Checksum == VNAME.Data.CalcChecksum)
 		TX20DataAverage();
 	else;
-
-//	trace_printf("TX20:Windspeed=%2.2f;Direction=%d\r\n", VNAME.Data.WindSpeed, VNAME.Data.WindDirX);
-
-	/* only for debug */
-//	sprintf(logging_buff, "S: %f D: %d RC: %d CC: %d \n\r\0", VNAME.Data.WindSpeed, VNAME.Data.WindDir, VNAME.Data.Checksum, VNAME.Data.CalcChecksum);
-//	SrlSendData(logging_buff, 0, 0);
 }
 
 float TX20FindMaxSpeed(void) {
@@ -203,6 +197,19 @@ float TX20FindMaxSpeed(void) {
 	}
 
 	return max_wind_speed;
+}
+
+float TX20FindMinSpeed(void) {
+	float out = 0.0f;
+
+	for(uint8_t d = 1; d <= TX20_BUFF_LN ; d++) {
+		if (	VNAME.HistoryAVG[d].WindSpeed != -1 &&
+				VNAME.HistoryAVG[d].WindSpeed < out) {
+			out = VNAME.HistoryAVG[d].WindSpeed;
+		}
+	}
+
+	return out;
 }
 
 
@@ -269,6 +276,7 @@ void TIM1_UP_TIM16_IRQHandler( void ) {
 	TIM1->SR &= ~(1<<0);
 	TX20Batch();
 }
+
 #elif TIMNUMBER == 2
 void TIM2_IRQHandler( void ) {
 

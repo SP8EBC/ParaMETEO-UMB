@@ -31,12 +31,12 @@ typedef struct umbMessage_t {
 } umbMessage_t;
 
 typedef struct umbMeteoData_t {
-	float fTemperature;
-	char temperature;
+	float float_temperature, float_avg_temperature, float_max_temperature, float_min_temperature;
+	char temperature, avg_temperature, max_temperature, min_temperature;
 	char humidity;
 	float qfe, qnh;
 	unsigned short sqfe, sqnh;
-	float windspeed, windgusts;
+	float windspeed, windgusts, windspeedmin;
 	short winddirection;
 }umbMeteoData_t;
 

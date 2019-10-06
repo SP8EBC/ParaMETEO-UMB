@@ -19,15 +19,7 @@ volatile char timm = 0;
 
 DallasStruct dallas;
 
-void dallas_init(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, uint16_t GPIO_PinSource) {
-//	GPIO_output.GPIO_Mode = GPIO_Mode_Out_OD;
-//	GPIO_output.GPIO_Pin = GPIO_Pin;
-//	GPIO_output.GPIO_Speed = GPIO_Speed_50MHz;
-
-//	GPIO_input.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-//	GPIO_input.GPIO_Pin = GPIO_Pin;
-//	GPIO_input.GPIO_Speed = GPIO_Speed_50MHz;
-//	GPIO_Init(GPIOx, &GPIO_input);
+void dallas_init(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, uint16_t GPIO_PinSource, DallasAverage_t* average) {
 
 #ifndef _DALLAS_SPLIT_PIN
 	dallas.GPIOx = GPIOx;
@@ -62,6 +54,12 @@ void dallas_init(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, uint16_t GPIO_PinSource
 	dallas.GPIO_Pin_input = GPIO_Pin << 1;
 #endif
 
+	for (int i = 0; i < DALLAS_AVERAGE_LN; i++) {
+		average->values[i] = DALLAS_INIT_VALUE;
+	}
+	average->current = average->values;
+	average->begin = average->values;
+	average->end = average->values + DALLAS_AVERAGE_LN - 1;
 }
 
 void dallas_config_timer(void) {
@@ -254,4 +252,64 @@ uint8_t dallas_calculate_crc8(uint8_t *addr, uint8_t len) {
 
 	/* Return calculated CRC */
 	return crc;
+}
+
+void dallas_average(float in, DallasAverage_t* average) {
+	*average->current = in;
+
+	if (average->current == average->end) {
+		average->current = average->begin;
+	}
+	else {
+		average->current++;
+	}
+
+}
+
+float dallas_get_average(const DallasAverage_t* average) {
+	float out = 0.0f;
+	uint8_t j = 0;
+
+	for (int i = 0; i < DALLAS_AVERAGE_LN; i++) {
+		if (average->values[i] == DALLAS_INIT_VALUE)
+			continue;
+
+		out += average->values[i];
+		j++;
+	}
+	if (j > 0) {
+		out /= j;
+		return out;
+	}
+	else {
+		return DALLAS_INIT_VALUE;
+	}
+}
+
+float dallas_get_min(const DallasAverage_t* average) {
+	float out = 128.0f;
+
+	for (int i = 0; i < DALLAS_AVERAGE_LN; i++) {
+		if (average->values[i] == DALLAS_INIT_VALUE)
+			continue;
+
+		if (average->values[i] < out)
+			out = average->values[i];
+	}
+
+	return out;
+}
+
+float dallas_get_max(const DallasAverage_t* average) {
+	float out = -128.0f;
+
+	for (int i = 0; i < DALLAS_AVERAGE_LN; i++) {
+		if (average->values[i] == DALLAS_INIT_VALUE)
+			continue;
+
+		if (average->values[i] > out)
+			out = average->values[i];
+	}
+
+	return out;
 }

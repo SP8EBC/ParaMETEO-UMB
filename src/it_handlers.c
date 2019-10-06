@@ -22,7 +22,6 @@
 #include "KissCommunication.h"
 #include <stdio.h>
 
-static char s = -1;
 static char wx_freq = 3, wxi = 2;
 
 extern umbMeteoData_t u;

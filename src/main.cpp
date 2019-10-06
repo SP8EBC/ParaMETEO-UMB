@@ -47,6 +47,8 @@ volatile int i = 0;
 
 uint32_t master_time = 0;
 
+uint16_t main_wx_measuremenets_counter = 0;
+
 
 // ----- main() ---------------------------------------------------------------
 
@@ -103,15 +105,15 @@ main(int argc, char* argv[])
 
 #ifndef _KOZIA_GORA
 	#ifndef _DALLAS_SPLIT_PIN
-	  dallas_init(GPIOC, GPIO_Pin_6, GPIO_PinSource6);
+	  dallas_init(GPIOC, GPIO_Pin_6, GPIO_PinSource6, &rte_wx_dallas_average);
 	#else
 	  // If split - ping OneWire is enabled to work with opto separation.
 	  // Pin defined here is an output. Next pin in the same port is an input
-	  dallas_init(GPIOC, GPIO_Pin_11, GPIO_PinSource11);
+	  dallas_init(GPIOC, GPIO_Pin_11, GPIO_PinSource11, &rte_wx_dallas_average);
 	#endif
 #else
 	  // SR9WXS specific configuration
-  dallas_init(GPIOC, GPIO_Pin_7, GPIO_PinSource7);
+  dallas_init(GPIOC, GPIO_Pin_7, GPIO_PinSource7, &rte_wx_dallas_average);
 #endif
 
   // Initializing UART
@@ -181,18 +183,6 @@ main(int argc, char* argv[])
 				  umb_slave_state = UMB_STATE_PROCESSING_DONE;
 				  break;
 			  case 0x23:
-				  /*
-				  rte_wx_umb.humidity = (char)rte_wx_dht_valid.humidity;
-				  rte_wx_umb.fTemperature = rte_wx_temperature_dallas_valid;
-				  rte_wx_umb.temperature = (char)rte_wx_temperature_dallas_valid;
-				  rte_wx_umb.qfe = rte_wx_pressure_valid;
-				  rte_wx_umb.sqfe = round(rte_wx_umb.qfe);
-				  rte_wx_umb.qnh = CalcQNHFromQFE(rte_wx_pressure_valid, 674, rte_wx_temperature_dallas_valid);
-				  rte_wx_umb.sqnh = round(CalcQNHFromQFE(rte_wx_pressure_valid, 674, rte_wx_temperature_dallas_valid));
-				  rte_wx_umb.winddirection = TX20.HistoryAVG[0].WindDirX;
-				  rte_wx_umb.windspeed = TX20.HistoryAVG[0].WindSpeed;
-				  rte_wx_umb.windgusts = TX20FindMaxSpeed();
-				  */
 				  wx_copy_to_rte_meteodata();
 				  umb_callback_online_data_request_0x23(&rte_wx_umb, 0);
 				  srl_start_tx(umb_prepare_frame_to_send(&umb_message, srl_tx_buffer));

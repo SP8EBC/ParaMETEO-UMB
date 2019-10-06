@@ -45,7 +45,6 @@ void i2cConfigure() {			// funkcja konfiguruje pierwszy kontroler i2c!!!
 		Configure_GPIO(GPIOB,8,AFOD_OUTPUT_2MHZ);
 		Configure_GPIO(GPIOB,9,AFOD_OUTPUT_2MHZ);				
 	}
-//	NVIC->IP[31] = 0x55;
 	NVIC_SetPriority(I2C1_EV_IRQn, 1);
 
 	I2C_StructInit(&I2C_InitStructure);
@@ -69,6 +68,32 @@ void i2cConfigure() {			// funkcja konfiguruje pierwszy kontroler i2c!!!
 
 	i2c_state = I2C_IDLE;
 
+}
+
+int i2cReinit() {
+	I2C_InitTypeDef I2C_InitStructure;
+
+	I2C1->CR1 |= I2C_CR1_SWRST;
+	I2C1->CR1 &= (0xFFFFFFFF ^ I2C_CR1_SWRST);
+
+	I2C_StructInit(&I2C_InitStructure);
+
+	/* Konfiguracja I2C */
+	I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
+	I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;
+	I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
+	I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
+	I2C_InitStructure.I2C_ClockSpeed = 50000;
+
+	/* Potwierdzamy konfigurację przed włączeniem I2C */
+	I2C_Init(I2C1, &I2C_InitStructure);
+
+	I2C1->CR2 |= I2C_CR2_ITEVTEN;		// w��czenie generowanie przerwania od zdarzen i2c
+	I2C1->CR2 |= I2C_CR2_ITBUFEN;
+	I2C1->CR2 |= I2C_CR2_ITERREN;
+
+
+	return 0;
 }
 
 int i2cSendData(int addr, int* data, int null) {
@@ -123,42 +148,41 @@ void i2cVariableReset(void) {
 void i2cIrqHandler(void) {
 	//	int i;
 		if ((I2C1->SR1 & I2C_SR1_SB) == I2C_SR1_SB && (i2cTXing == 1 || i2cRXing == 1)) {
-		// po nadaniu warunk�w startu podczas wysy�ania danych do slave  EV5
-			I2C1->DR = i2cRemoteAddr;				// wpisanie do DR adresu slave do nadania
-			I2C1->SR1 &= (0xFFFFFFFF ^ I2C_SR1_SB);	// gaszenie flagi SB
-
-
-
-	//		I2C1->SR1 &  I2C_SR1_SB;
+		// After Start conditions have been transmitted.
+			I2C1->DR = i2cRemoteAddr;				// Loading the slave address into data register
+			I2C1->SR1 &= (0xFFFFFFFF ^ I2C_SR1_SB);	// clearing 'SB' flag
 
 		}
 		if ((I2C1->SR1 & I2C_SR1_ADDR) == I2C_SR1_ADDR && (i2cTXing == 1 || i2cRXing == 1)) {
-		// po wys�aniu adresu slave      EV6
+		// After transmitting the slave address      EV6
 			I2C1->SR1 &= (0xFFFFFFFF ^ I2C_SR1_ADDR);
 			I2C1->SR2 &= (0xFFFFFFFF ^ I2C_SR2_TRA);
 
 			if (i2cRXBytesNumber == 1 && i2cRXing == 1) {
 				/// EV_6_1
-				I2C1->CR1 &= (0xFFFFFFFF ^ I2C_CR1_ACK);	// wy�czanie odpowiadania ACK przy odbiorze je�eli tylko 1 bjt
+				// If i2c is on receive mode an only single byte must be received clear the ACK flag
+				// not to set ACK on bus after receiving the byte.
+				I2C1->CR1 &= (0xFFFFFFFF ^ I2C_CR1_ACK);
 				I2C1->CR1 |= I2C_CR1_STOP;
 				}
 
-			if (i2cRXing == 1)
-				I2C1->CR1 |= I2C_CR1_ACK;			// ustawienie bity ACK
+			if (i2cRXing == 1) // TODO: this is a bug??
+				I2C1->CR1 |= I2C_CR1_ACK;
 		}
 		if ((I2C1->SR1 & I2C_SR1_TXE) == I2C_SR1_TXE && i2cTXing == 1) {
-		//    EV_8_1
-			I2C1->DR = i2cTXData[0];
+		// If I2C is in transmission mode and the data buffer is busy
+		// put the next in the data register EV_8_1
+			I2C1->DR = i2cTXData[0];		// TODO: This is probably a bug?
 			i2cTRXDataCounter++;
 		}
 		if (i2cTRXDataCounter == i2cTXQueueLen && i2cTXing == 1) {
-		// przes�ano wszystkie dane, czyli teraz trzeba da� warunki STOP
+			// If all data have been transmitted to the slave the stop conditions should be
+			// transmitte over the i2c bus
 			i2cTXing = 0;
 			I2C1->CR1 |= I2C_CR1_STOP;
 			while ((I2C1->CR1 & I2C_CR1_STOP) == I2C_CR1_STOP);
 
-			//I2C_Cmd(I2C1, DISABLE);
-
+			// stop the i2c
 			i2cStop();
 		}
 		if ((I2C1->SR1 & I2C_SR1_BTF) == I2C_SR1_BTF && i2cTXing == 1) {
@@ -241,6 +265,7 @@ void i2cErrIrqHandler(void) {
 	i2cErrorCounter++;
 
 	if (i2cErrorCounter > MAX_I2C_ERRORS_PER_COMM) {
+		i2cReinit();
 		i2cStop();
 
 		i2c_state = I2C_ERROR;
@@ -276,7 +301,8 @@ void i2cStart(void) {
 
 void i2cKeepTimeout(void) {
 	if (i2c_state == I2C_RXING || i2c_state == I2C_TXING) {
-		if (i2cStartTime > I2C_TIMEOUT) {
+		if (master_time - i2cStartTime > I2C_TIMEOUT) {
+			i2cReinit();
 			i2cStop();
 			i2c_state = I2C_ERROR;
 		}

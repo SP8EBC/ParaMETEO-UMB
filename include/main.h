@@ -17,6 +17,8 @@
 
 extern uint32_t master_time;
 
+extern uint16_t main_wx_measuremenets_counter;
+
 extern float ds_t;
 extern float ms_t;
 extern double ms_p;

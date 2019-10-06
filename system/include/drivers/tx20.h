@@ -13,6 +13,8 @@ typedef struct {
 
 #define TX20_BUFF_LN 20
 
+#define TX20_MAX_SLEW_RATE 9
+
 typedef struct {
 	char BitSampler;
 	/* Zmienna przechowuj�ca stan automatu sampluj�cego bity.
@@ -62,6 +64,7 @@ void TX20Init(void);
 float TX20DataAverage(void);
 void TX20DataParse(void);
 float TX20FindMaxSpeed(void);
+float TX20FindMinSpeed(void);
 
 #ifdef __cplusplus
 }
