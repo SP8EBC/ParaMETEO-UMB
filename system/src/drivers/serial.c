@@ -146,8 +146,8 @@ uint8_t srl_send_data(uint8_t* data, uint8_t mode, uint16_t leng, uint8_t intern
 		 */
 	int i;
 
-	// resetting counter
-	srl_tx_bytes_counter = 0;
+	// the bytes counter needs to be set to 1 as the first byte is sent in this function
+	srl_tx_bytes_counter = 1;
 
 	// if an user want to send data using internal buffer
 	if (internal_external == 0) {
@@ -209,14 +209,16 @@ uint8_t srl_start_tx(short leng) {
 		return SRL_DATA_TOO_LONG;
 
 	srl_tx_bytes_req = leng;
-	srl_tx_bytes_counter = 0;
+
+	// the bytes counter needs to be set to 1 as the first byte is sent in this function
+	srl_tx_bytes_counter = 1;
 
 	// setting a pointer to transmit buffer to the internal buffer inside the driver
 	srl_tx_buf_pointer = srl_tx_buffer;
 
 	PORT->CR1 |= USART_CR1_TE;
 	PORT->SR &= (0xFFFFFFFF ^ USART_SR_TC);
-	PORT->DR = srl_tx_buf_pointer[srl_tx_bytes_counter];
+	PORT->DR = srl_tx_buf_pointer[0];
 
 	srl_tx_state = SRL_TXING;
 

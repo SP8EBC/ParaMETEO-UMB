@@ -61,8 +61,7 @@ uint16_t main_wx_measuremenets_counter = 0;
 #pragma GCC diagnostic ignored "-Wempty-body"
 
 int
-main(int argc, char* argv[])
-{
+main(int argc, char* argv[]){
 
   RCC->APB1ENR |= (RCC_APB1ENR_TIM2EN | RCC_APB1ENR_TIM3EN | RCC_APB1ENR_TIM7EN | RCC_APB1ENR_TIM4EN);
   RCC->APB2ENR |= (RCC_APB2ENR_IOPAEN |

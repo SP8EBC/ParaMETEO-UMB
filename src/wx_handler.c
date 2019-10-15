@@ -43,7 +43,7 @@ void wx_get_all_measurements(void) {
 		rte_wx_temperature_min_dallas_valid = dallas_get_min(&rte_wx_dallas_average);
 
 		// and update maximum also
-		rte_wx_temperature_min_dallas_valid = dallas_get_max(&rte_wx_dallas_average);
+		rte_wx_temperature_max_dallas_valid = dallas_get_max(&rte_wx_dallas_average);
 	}
 	else {
 		// if there were a communication error set the error to unavaliable
