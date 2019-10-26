@@ -38,7 +38,6 @@
 
 #include "station_config.h"
 
-//#define _KOZIA_GORA
 
 
 volatile int i = 0;

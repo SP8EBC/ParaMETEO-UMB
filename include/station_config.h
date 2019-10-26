@@ -9,7 +9,9 @@
 #define STATION_CONFIG_H_
 
 
-#define _DALLAS_SPLIT_PIN
+//#define _DALLAS_SPLIT_PIN
+
+#define _KOZIA_GORA
 
 
 

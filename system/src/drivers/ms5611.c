@@ -13,8 +13,17 @@ char state;	// zmienna sygnalizuj�ca przebieg pomiaru..
 			// 2: odczytaj ci�nienie i zmierz temperature
 			// sekwencja stan�w 0 -> 1 -> 2 -> 1 -> 2 -> 1 (...)
 
+#ifndef _KOZIA_GORA
+
 #define TX_ADDR 0xEE
 #define RX_ADDR 0xEF
+
+#else
+
+#define TX_ADDR 0xEC
+#define RX_ADDR 0xED
+
+#endif
 
 // An array to store Calibration data
 int32_t SensorCalData[8];

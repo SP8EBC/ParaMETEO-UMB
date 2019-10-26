@@ -11,6 +11,8 @@
 
 #include <string.h>
 
+#include "../include/station_config.h"
+
 int srlBRRegValue = 0x09C4 ;		// dla symulacji ---- baudrate 9600bps
 //int SrlBRRegValue = 0x0209;		// dla realnego uk��du
 
@@ -73,6 +75,13 @@ void srl_init(void) {
 	Configure_GPIO(GPIOA,10,PUD_INPUT);			// RX
 	Configure_GPIO(GPIOA,9,AFPP_OUTPUT_2MHZ);	// TX
 	
+#ifndef _KOZIA_GORA
+
+#else
+	Configure_GPIO(GPIOD,2,GPPP_OUTPUT_2MHZ);	// re/te
+	GPIO_ResetBits(GPIOD, GPIO_Pin_2);
+#endif
+
 	RCC->APB2ENR |= RCC_APB2ENR_USART1EN;		// wġṗczanie zegara dla USART
 
 	USART_InitTypeDef USART_InitStructure;
@@ -185,6 +194,11 @@ uint8_t srl_send_data(uint8_t* data, uint8_t mode, uint16_t leng, uint8_t intern
 	}
 	else return SRL_WRONG_BUFFER_PARAM;
 
+#ifndef _KOZIA_GORA
+#else
+	GPIO_SetBits(GPIOD, GPIO_Pin_2);
+#endif
+
 	// enabling transmitter
 	PORT->CR1 |= USART_CR1_TE;
 	PORT->SR &= (0xFFFFFFFF ^ USART_SR_TC);
@@ -193,6 +207,7 @@ uint8_t srl_send_data(uint8_t* data, uint8_t mode, uint16_t leng, uint8_t intern
 	PORT->CR1 |= USART_CR1_TXEIE;				// przerwanie zg�aszane kiedy rejsetr DR jest pusty
 	PORT->CR1 |= USART_CR1_TCIE;				// przerwanie zg�aszane po transmisji bajtu
 												// je�eli rejestr DR jest nadal pusty
+
 	return SRL_OK;
 
 }
@@ -215,6 +230,11 @@ uint8_t srl_start_tx(short leng) {
 
 	// setting a pointer to transmit buffer to the internal buffer inside the driver
 	srl_tx_buf_pointer = srl_tx_buffer;
+
+#ifndef _KOZIA_GORA
+#else
+	GPIO_SetBits(GPIOD, GPIO_Pin_2);
+#endif
 
 	PORT->CR1 |= USART_CR1_TE;
 	PORT->SR &= (0xFFFFFFFF ^ USART_SR_TC);
@@ -424,6 +444,10 @@ void srl_irq_handler(void) {
 				PORT->CR1 &= (0xFFFFFFFF ^ USART_CR1_TCIE);	// wyġṗczanie przerwañ od portu szeregowego
 				PORT->SR &= (0xFFFFFFFF ^ USART_SR_TC);
 				srl_tx_state = SRL_TX_IDLE;
+#ifndef _KOZIA_GORA
+#else
+				GPIO_ResetBits(GPIOD, GPIO_Pin_2);
+#endif
 			}
 
 			if (srl_tx_bytes_counter >= TX_BUFFER_LN ||
@@ -434,6 +458,10 @@ void srl_irq_handler(void) {
 				PORT->CR1 &= (0xFFFFFFFF ^ USART_CR1_TCIE);	// wyġṗczanie przerwañ od portu szeregowego
 				PORT->SR &= (0xFFFFFFFF ^ USART_SR_TC);
 				srl_tx_state = SRL_TX_IDLE;
+#ifndef _KOZIA_GORA
+#else
+				GPIO_ResetBits(GPIOD, GPIO_Pin_2);
+#endif
 			}
 
 			break;
