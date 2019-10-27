@@ -13,6 +13,8 @@
 
 #define _KOZIA_GORA
 
+#define ALTITUDE 674
+
 
 
 #endif /* STATION_CONFIG_H_ */

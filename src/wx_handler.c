@@ -11,6 +11,8 @@
 #include "drivers/ms5611.h"
 #include "drivers/tx20.h"
 
+#include "../include/station_config.h"
+
 
 void wx_get_all_measurements(void) {
 
@@ -105,9 +107,9 @@ void wx_copy_to_rte_meteodata(void) {
 	  rte_wx_umb.float_avg_temperature = rte_wx_temperature_average_dallas_valid;
 	  rte_wx_umb.avg_temperature = lround(rte_wx_temperature_average_dallas_valid);
 	  rte_wx_umb.qfe = rte_wx_pressure_valid;
-	  rte_wx_umb.sqfe = round(rte_wx_umb.qfe);
-	  rte_wx_umb.qnh = CalcQNHFromQFE(rte_wx_pressure_valid, 674, rte_wx_temperature_dallas_valid);
-	  rte_wx_umb.sqnh = round(CalcQNHFromQFE(rte_wx_pressure_valid, 674, rte_wx_temperature_dallas_valid));
+	  rte_wx_umb.sqfe = round(rte_wx_pressure_valid);
+	  rte_wx_umb.qnh = CalcQNHFromQFE(rte_wx_pressure_valid, ALTITUDE, rte_wx_temperature_dallas_valid);
+	  rte_wx_umb.sqnh = round(CalcQNHFromQFE(rte_wx_pressure_valid, ALTITUDE, rte_wx_temperature_dallas_valid));
 	  rte_wx_umb.winddirection = TX20.HistoryAVG[0].WindDirX;
 	  rte_wx_umb.windspeed = TX20.HistoryAVG[0].WindSpeed;
 	  rte_wx_umb.windgusts = TX20FindMaxSpeed();

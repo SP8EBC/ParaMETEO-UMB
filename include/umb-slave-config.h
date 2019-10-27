@@ -11,6 +11,8 @@
 #define DEV_CLASS (uint8_t)(0x0C << 4)
 #define DEV_ID (uint8_t)2
 
+#define SW_VERSION 0xA2
+
 #define CH_SWAP_TEMP_CURRENT_WITH_AVG
 
 // 3.9.8 Channel Assignment Device Class 7 Compact Weather Station

@@ -177,14 +177,14 @@ char umb_callback_device_information_0x2d(void) {
 			umb_message.payload[1] = 0x13;
 			umb_message.payload[2] = 0x11; // Serial LSB
 			umb_message.payload[3] = 0x11; // Serial MSB
-			umb_message.payload[4] = 0x02; // MMYY LSB
+			umb_message.payload[4] = 0x26; // MMYY LSB
 			umb_message.payload[5] = 0x10; // MMYY MSB
 			umb_message.payload[6] = 0x02;
 			umb_message.payload[7] = 0x00;
 			umb_message.payload[8] = 0x01; // PartsList
 			umb_message.payload[9] = 0x01; // PartsPlan
 			umb_message.payload[10] = 0x0A;	// hardware
-			umb_message.payload[11] = 0x0A;	// software
+			umb_message.payload[11] = SW_VERSION;	// software
 			umb_message.payload[12] = 0x0A;	// e2version
 			umb_message.payload[13] = 0x0A; // DeviceVersion LSB
 			umb_message.payload[14] = 0x00;
